@@ -90,6 +90,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.blacksingularities.opensms.data.Box as MsgBox
 import com.blacksingularities.opensms.data.Contacts
+import com.blacksingularities.opensms.data.canReplyTo
 import com.blacksingularities.opensms.data.Delivery
 import com.blacksingularities.opensms.data.Message
 import com.blacksingularities.opensms.data.MmsPart
@@ -215,7 +216,7 @@ fun ThreadScreen(vm: AppViewModel, s: Screen.Thread) {
             }
         }
 
-        Composer(vm, s)
+        if (s.addresses.isNotEmpty() && s.addresses.none { canReplyTo(it) }) NoReplyNote(s.addresses) else Composer(vm, s)
     }
 
     if (menu && threadId != null) {
@@ -302,6 +303,31 @@ fun ThreadScreen(vm: AppViewModel, s: Screen.Thread) {
         ) {
             vm.blockAddresses(s.addresses, setOfNotNull(threadId))
             vm.back()
+        }
+    }
+}
+
+/** Nadawca alfanumeryczny – odpowiedź nie ma dokąd trafić, więc zamiast pola tekstowego jest wyjaśnienie. */
+@Composable
+private fun NoReplyNote(addresses: List<String>) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+            .clip(RoundedCornerShape(18.dp))
+            .background(Palette.PanelHigh)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Rounded.Block, null, tint = Palette.TextFaint, modifier = Modifier.size(20.dp))
+        Column(Modifier.padding(start = 12.dp)) {
+            Text("Nie można odpowiedzieć", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text(
+                "${addresses.joinToString(", ")} wysyła wiadomości z nazwy, a nie z numeru. Operator nie przyjmie odpowiedzi.",
+                color = Palette.TextDim,
+                fontSize = 13.sp,
+                lineHeight = 18.sp,
+            )
         }
     }
 }

@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.blacksingularities.opensms.data.Contact
 import com.blacksingularities.opensms.data.Contacts
+import com.blacksingularities.opensms.data.canReplyTo
 import com.blacksingularities.opensms.data.formatNumber
 import com.blacksingularities.opensms.data.normalizeNumber
 import com.blacksingularities.opensms.ui.components.Avatar
@@ -89,12 +90,19 @@ fun ComposeScreen(vm: AppViewModel, s: Screen.Compose) {
             }
         }
     }
-    val recent = remember(vm.conversations) { vm.conversations.filter { it.conv.addresses.size == 1 }.take(8) }
-    val canUseRaw = digits.length >= 3 || query.contains('@')
+    // Nadawcy alfanumeryczni (np. „Google”) nie przyjmują wiadomości – nie ma sensu ich proponować.
+    val recent = remember(vm.conversations) {
+        vm.conversations.filter { it.conv.addresses.size == 1 && canReplyTo(it.conv.addresses[0]) }.take(8)
+    }
+    val canUseRaw = canReplyTo(query.trim()) && (digits.length >= 3 || query.contains('@'))
 
     fun add(address: String) {
         val a = address.trim()
         if (a.isEmpty()) return
+        if (!canReplyTo(a)) {
+            vm.toast = "Na ten adres nie da się wysłać wiadomości"
+            return
+        }
         if (recipients.none { normalizeNumber(it) == normalizeNumber(a) }) recipients = recipients + a
         query = ""
     }

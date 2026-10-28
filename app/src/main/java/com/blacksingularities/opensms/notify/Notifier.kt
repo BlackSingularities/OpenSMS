@@ -23,6 +23,7 @@ import androidx.core.graphics.drawable.IconCompat
 import com.blacksingularities.opensms.MainActivity
 import com.blacksingularities.opensms.R
 import com.blacksingularities.opensms.data.Contacts
+import com.blacksingularities.opensms.data.canReplyTo
 import com.blacksingularities.opensms.data.MessageStore
 import com.blacksingularities.opensms.data.Settings
 import com.blacksingularities.opensms.sms.MessageSender
@@ -126,23 +127,26 @@ object Notifier {
                     .build(),
             )
 
-        val reply = RemoteInput.Builder(NotificationActionReceiver.KEY_REPLY).setLabel("Odpowiedz…").build()
-        val replyIntent = PendingIntent.getBroadcast(
-            context,
-            threadId.toInt(),
-            Intent(context, NotificationActionReceiver::class.java)
-                .setAction(NotificationActionReceiver.ACTION_REPLY)
-                .putExtra(EXTRA_THREAD, threadId),
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
-        )
-        n.addAction(
-            NotificationCompat.Action.Builder(R.drawable.ic_notification, "Odpowiedz", replyIntent)
-                .addRemoteInput(reply)
-                .setAllowGeneratedReplies(true)
-                .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_REPLY)
-                .setShowsUserInterface(false)
-                .build(),
-        )
+        // Nadawcy alfanumeryczni nie przyjmują wiadomości – odpowiedź z powiadomienia byłaby ślepym zaułkiem.
+        if (addresses.any { canReplyTo(it) }) {
+            val reply = RemoteInput.Builder(NotificationActionReceiver.KEY_REPLY).setLabel("Odpowiedz…").build()
+            val replyIntent = PendingIntent.getBroadcast(
+                context,
+                threadId.toInt(),
+                Intent(context, NotificationActionReceiver::class.java)
+                    .setAction(NotificationActionReceiver.ACTION_REPLY)
+                    .putExtra(EXTRA_THREAD, threadId),
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
+            )
+            n.addAction(
+                NotificationCompat.Action.Builder(R.drawable.ic_notification, "Odpowiedz", replyIntent)
+                    .addRemoteInput(reply)
+                    .setAllowGeneratedReplies(true)
+                    .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_REPLY)
+                    .setShowsUserInterface(false)
+                    .build(),
+            )
+        }
         n.addAction(
             NotificationCompat.Action.Builder(R.drawable.ic_notification, "Przeczytane", action(context, NotificationActionReceiver.ACTION_READ, threadId))
                 .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_MARK_AS_READ)

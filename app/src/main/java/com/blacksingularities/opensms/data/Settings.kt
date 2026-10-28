@@ -291,6 +291,19 @@ class Settings private constructor(context: Context) {
     }
 }
 
+/**
+ * Czy na ten adres da się odpowiedzieć. Nadawcy alfanumeryczni („Google”, „InPost”, „Info”)
+ * to jednokierunkowe identyfikatory – operator nie przyjmie wiadomości wysłanej na nie.
+ * Numery skrócone (np. „8080”) i adresy e-mail (MMS) są w porządku.
+ */
+fun canReplyTo(address: String): Boolean {
+    val a = address.trim()
+    if (a.isEmpty()) return false
+    if ('@' in a) return true
+    if (a.any { it.isLetter() }) return false
+    return a.count { it.isDigit() } >= 3
+}
+
 /** Numer bez spacji, myślników i nawiasów – do porównań. */
 fun normalizeNumber(address: String): String {
     val digits = address.filter { it.isDigit() || it == '+' }
