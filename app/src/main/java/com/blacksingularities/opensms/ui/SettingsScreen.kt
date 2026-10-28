@@ -54,6 +54,8 @@ import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.automirrored.rounded.KeyboardReturn
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.NotificationsActive
+import androidx.compose.material.icons.rounded.LocalCafe
+import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PersonOff
 import androidx.compose.material.icons.rounded.Restore
 import androidx.compose.material.icons.rounded.Schedule
@@ -292,8 +294,14 @@ private fun ColumnScope.MainSettings(vm: AppViewModel, onRequestPermissions: () 
         }
         ActionRow(Icons.Rounded.Restore, "Sprawdź teraz", status) { vm.checkUpdate(silent = false) }
         InfoRow(Icons.Rounded.Code, "Wersja", UpdateManager.currentVersion)
-        ActionRow(Icons.Rounded.Code, "Kod źródłowy i wydania", UpdateManager.REPO_PAGE.removePrefix("https://")) {
-            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(UpdateManager.RELEASES_PAGE))) }
+    }
+
+    Group("O aplikacji") {
+        ActionRow(Icons.Rounded.Person, "Pomysł i wykonanie", "Adam Rędzikowski · redzikowski.com") {
+            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://redzikowski.com"))) }
+        }
+        ActionRow(Icons.Rounded.LocalCafe, "Postaw kawę", "Wesprzyj rozwój na buycoffee.to") {
+            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://buycoffee.to/adamredzikowski"))) }
         }
     }
 

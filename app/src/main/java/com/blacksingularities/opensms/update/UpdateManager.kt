@@ -31,8 +31,6 @@ object UpdateManager {
     private const val RESTART_KEY = "update.restart"
     private const val NOTIFICATION_ID = 4711
     private val API = "https://api.github.com/repos/${BuildConfig.UPDATE_REPO}/releases/latest"
-    val RELEASES_PAGE = "https://github.com/${BuildConfig.UPDATE_REPO}/releases"
-    val REPO_PAGE = "https://github.com/${BuildConfig.UPDATE_REPO}"
 
     val currentVersion: String get() = BuildConfig.VERSION_NAME
 
