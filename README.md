@@ -55,7 +55,7 @@ Aplikacja sprawdza przy starcie najnowsze wydanie na GitHubie. Baner „Nowa wer
 gradle :app:assembleDebug
 ```
 
-Wymagane JDK 17 i Android SDK (compileSdk 36). Wydania budują się na GitHub Actions z pliku `VERSION`; podpis z sekretów `SIGNING_KEYSTORE_BASE64`, `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS`, `SIGNING_KEY_PASSWORD`.
+Wymagane JDK 17 i Android SDK (compileSdk 36). Wydanie powstaje na GitHub Actions po wypchnięciu tagu `vX.Y.Z` zgodnego z plikiem `VERSION` (np. `git tag v1.0.0 && git push origin v1.0.0`); podpis z sekretów `SIGNING_KEYSTORE_BASE64`, `SIGNING_STORE_PASSWORD`, `SIGNING_KEY_ALIAS`, `SIGNING_KEY_PASSWORD`.
 
 ### Struktura
 | Katalog | Zawartość |
