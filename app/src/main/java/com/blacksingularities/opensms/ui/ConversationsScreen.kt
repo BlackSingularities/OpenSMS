@@ -231,8 +231,8 @@ private fun Filters(vm: AppViewModel, modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        TabChip(null, Filter.ALL.label, vm.filter == Filter.ALL) { vm.filter = Filter.ALL }
-        TabChip(null, Filter.UNREAD.label, vm.filter == Filter.UNREAD, count = unreadThreads) { vm.filter = Filter.UNREAD }
+        TabChip(Icons.Rounded.Forum, Filter.ALL.label, vm.filter == Filter.ALL) { vm.filter = Filter.ALL }
+        TabChip(Icons.Rounded.MarkChatUnread, Filter.UNREAD.label, vm.filter == Filter.UNREAD, count = unreadThreads) { vm.filter = Filter.UNREAD }
         if (pinned > 0 || vm.filter == Filter.PINNED) TabChip(Icons.Rounded.PushPin, Filter.PINNED.label, vm.filter == Filter.PINNED) { vm.filter = Filter.PINNED }
         if (archived > 0 || vm.filter == Filter.ARCHIVED) TabChip(Icons.Rounded.Archive, Filter.ARCHIVED.label, vm.filter == Filter.ARCHIVED, count = archived) { vm.filter = Filter.ARCHIVED }
     }

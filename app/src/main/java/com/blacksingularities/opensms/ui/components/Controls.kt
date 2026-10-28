@@ -488,10 +488,11 @@ fun TabChip(icon: ImageVector?, label: String, selected: Boolean, modifier: Modi
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) {
-            Icon(icon, null, tint = if (selected) Palette.Ink else Color.White, modifier = Modifier.size(16.dp))
-            Spacer(Modifier.width(5.dp))
+            Icon(icon, label, tint = if (selected) Palette.Ink else Color.White, modifier = Modifier.size(16.dp))
+            if (selected) Spacer(Modifier.width(5.dp))
         }
-        Text(label, color = if (selected) Palette.Ink else Color.White, fontSize = 13.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
+        // Nieaktywne zakładki z ikoną pokazują tylko ikonę; nazwa tylko przy otwartej.
+        if (icon == null || selected) Text(label, color = if (selected) Palette.Ink else Color.White, fontSize = 13.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
         if (count > 0) {
             Spacer(Modifier.width(5.dp))
             Text(
