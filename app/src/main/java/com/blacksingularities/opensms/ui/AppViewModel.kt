@@ -1,6 +1,7 @@
 package com.blacksingularities.opensms.ui
 
 import android.app.Application
+import android.app.role.RoleManager
 import android.database.ContentObserver
 import android.net.Uri
 import android.os.Handler
@@ -141,7 +142,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun refreshDefault() {
-        isDefault = Telephony.Sms.getDefaultSmsPackage(ctx) == ctx.packageName
+        val byPackage = Telephony.Sms.getDefaultSmsPackage(ctx) == ctx.packageName
+        val byRole = runCatching {
+            ctx.getSystemService(RoleManager::class.java)?.isRoleHeld(RoleManager.ROLE_SMS) == true
+        }.getOrDefault(false)
+        isDefault = byPackage || byRole
     }
 
     // --- Nawigacja ---
