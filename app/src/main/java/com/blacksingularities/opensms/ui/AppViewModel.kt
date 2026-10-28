@@ -56,7 +56,7 @@ sealed interface Screen {
 
 enum class SettingsPage { MAIN, BLOCKED, BLOCKED_LOG, TEMPLATES, SCHEDULED, STATS }
 
-enum class Filter(val label: String) { ALL("Wszystkie"), UNREAD("Nieprzeczytane"), PINNED("Przypięte"), ARCHIVED("Archiwum") }
+enum class Filter(val label: String) { ALL("Wszystkie"), UNREAD("Nieprzeczytane"), PINNED("Przypięte"), ARCHIVED("Archiwum"), TRASH("Kosz") }
 
 /** Rozmowa z gotowymi danymi do wyświetlenia. */
 data class ConversationItem(
@@ -66,6 +66,7 @@ data class ConversationItem(
     val known: Boolean,
     val pinned: Boolean,
     val archived: Boolean,
+    val trashed: Boolean,
     val muted: Boolean,
 )
 
@@ -115,7 +116,20 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     var sims by mutableStateOf<List<SimCard>>(emptyList())
         private set
 
-    var toast by mutableStateOf<String?>(null)
+    private var toastState by mutableStateOf<String?>(null)
+    /** Licznik komunikatów – ten sam tekst pokazany drugi raz znów odlicza czas. */
+    var toastId by mutableStateOf(0)
+        private set
+    var toast: String?
+        get() = toastState
+        set(value) {
+            toastState = value
+            undo = null
+            if (value != null) toastId++
+        }
+    /** Cofnięcie ostatniej operacji – pokazywane jako „Cofnij” przy komunikacie. */
+    var undo by mutableStateOf<(() -> Unit)?>(null)
+    private var hiddenMessages = emptySet<Long>()
     var update by mutableStateOf<UpdateState>(UpdateState.Idle)
     var updateBannerHidden by mutableStateOf(false)
     var stats by mutableStateOf<Stats?>(null)
@@ -135,6 +149,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         reload()
         if (settings.autoUpdateCheck) checkUpdate(silent = true)
         viewModelScope.launch(Dispatchers.IO) { MmsDownloader.cleanup(ctx) }
+        purgeTrash()
     }
 
     override fun onCleared() {
@@ -253,7 +268,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun reload() {
         viewModelScope.launch {
             val items = withContext(Dispatchers.IO) {
-                store.conversations().map { c ->
+                val trash = settings.trashedAt()
+                // Nowa wiadomość w rozmowie z kosza wyciąga ją z powrotem.
+                val revived = store.conversations().also { list ->
+                    list.filter { c -> trash[c.threadId]?.let { c.date > it } == true }.map { it.threadId }
+                        .takeIf { it.isNotEmpty() }?.let { settings.toggleTrashed(it, false) }
+                }
+                val trashed = settings.trashedAt().keys
+                revived.map { c ->
                     val single = c.addresses.size == 1
                     val info = if (single) Contacts.lookup(ctx, c.addresses[0]) else null
                     ConversationItem(
@@ -263,6 +285,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                         known = info != null,
                         pinned = settings.isPinned(c.threadId),
                         archived = settings.isArchived(c.threadId),
+                        trashed = c.threadId in trashed,
                         muted = settings.isMuted(c.threadId),
                     )
                 }
@@ -276,16 +299,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Lista po filtrze: przypięte na górze, archiwalne tylko w „Archiwum”. */
     fun visibleConversations(): List<ConversationItem> {
+        val live = conversations.filter { !it.trashed }
         val list = when (filter) {
-            Filter.ALL -> conversations.filter { !it.archived }
-            Filter.UNREAD -> conversations.filter { it.conv.unread > 0 }
-            Filter.PINNED -> conversations.filter { it.pinned }
-            Filter.ARCHIVED -> conversations.filter { it.archived }
+            Filter.ALL -> live.filter { !it.archived }
+            Filter.UNREAD -> live.filter { it.conv.unread > 0 }
+            Filter.PINNED -> live.filter { it.pinned }
+            Filter.ARCHIVED -> live.filter { it.archived }
+            Filter.TRASH -> conversations.filter { it.trashed }
         }
-        return list.sortedWith(compareByDescending<ConversationItem> { it.pinned && filter != Filter.ARCHIVED }.thenByDescending { it.conv.date })
+        return list.sortedWith(compareByDescending<ConversationItem> { it.pinned && filter != Filter.ARCHIVED && filter != Filter.TRASH }.thenByDescending { it.conv.date })
     }
 
-    val unreadCount: Int get() = conversations.filter { !it.archived }.sumOf { it.conv.unread }
+    val unreadCount: Int get() = conversations.filter { !it.archived && !it.trashed }.sumOf { it.conv.unread }
 
     private fun loadMessages(markRead: Boolean) {
         val id = openThreadId ?: return
@@ -299,7 +324,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 l
             }
             if (openThreadId == id) {
-                messages = list
+                messages = list.filter { it.id !in hiddenMessages }
                 canLoadMore = list.size >= messageLimit
             }
         }
@@ -371,19 +396,23 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val allPinned = ids.all { settings.isPinned(it) }
         settings.togglePinned(ids, !allPinned)
         selection = emptySet()
-        toast = if (allPinned) "Odpięto" else "Przypięto"
+        notify(if (allPinned) "Odpięto" else "Przypięto") { settings.togglePinned(ids, allPinned); reload() }
         reload()
     }
 
     fun archive(ids: Set<Long>, on: Boolean) {
+        val before = ids.filter { settings.isArchived(it) }
         settings.toggleArchived(ids, on)
         selection = emptySet()
-        toast = if (on) "Przeniesiono do archiwum" else "Przywrócono z archiwum"
+        notify(if (on) "Przeniesiono do archiwum" else "Przywrócono z archiwum") {
+            settings.toggleArchived(ids, false); settings.toggleArchived(before, true); reload()
+        }
         reload()
     }
 
-    fun markRead(ids: Set<Long>, read: Boolean) {
+    fun markRead(ids: Set<Long>, read: Boolean, undoable: Boolean = true) {
         selection = emptySet()
+        if (undoable) notify(if (read) "Oznaczono jako przeczytane" else "Oznaczono jako nieprzeczytane") { markRead(ids, !read, undoable = false) }
         viewModelScope.launch(Dispatchers.IO) {
             ids.forEach {
                 if (read) {
@@ -403,6 +432,47 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         toast = "Wszystko oznaczone jako przeczytane"
     }
 
+    /** Komunikat z opcjonalnym „Cofnij”. */
+    fun notify(message: String, onUndo: (() -> Unit)? = null) {
+        toast = message
+        undo = onUndo
+    }
+
+    /** Usuwanie rozmów: najpierw do kosza (z cofnięciem), z kosza – trwale. */
+    fun trashThreads(ids: Set<Long>) {
+        val inTrash = ids.filter { id -> conversations.any { it.conv.threadId == id && it.trashed } }.toSet()
+        if (inTrash.isNotEmpty()) deleteThreads(inTrash)
+        val move = ids - inTrash
+        if (move.isEmpty()) return
+        settings.toggleTrashed(move, true)
+        selection = emptySet()
+        move.forEach { Notifier.cancel(ctx, it) }
+        notify(if (move.size == 1) "Przeniesiono do kosza" else "Przeniesiono do kosza: ${move.size}") { restoreThreads(move) }
+        if (openThreadId?.let { it in move } == true) home()
+        reload()
+    }
+
+    fun restoreThreads(ids: Set<Long>) {
+        settings.toggleTrashed(ids, false)
+        selection = emptySet()
+        notify(if (ids.size == 1) "Przywrócono rozmowę" else "Przywrócono rozmowy: ${ids.size}") { settings.toggleTrashed(ids, true); reload() }
+        reload()
+    }
+
+    fun emptyTrash() {
+        val ids = conversations.filter { it.trashed }.map { it.conv.threadId }.toSet()
+        if (ids.isNotEmpty()) deleteThreads(ids)
+    }
+
+    /** Rozmowy dłużej niż 30 dni w koszu znikają na dobre. */
+    private fun purgeTrash() {
+        val old = settings.trashedAt().filterValues { System.currentTimeMillis() - it > TRASH_DAYS * 86_400_000L }.keys
+        if (old.isNotEmpty()) viewModelScope.launch(Dispatchers.IO) {
+            old.forEach { store.deleteThread(it) }
+            settings.forgetThreads(old)
+        }
+    }
+
     fun deleteThreads(ids: Set<Long>) {
         selection = emptySet()
         viewModelScope.launch {
@@ -410,7 +480,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 ids.forEach { store.deleteThread(it); Notifier.cancel(ctx, it) }
                 settings.forgetThreads(ids)
             }
-            toast = if (ids.size == 1) "Usunięto rozmowę" else "Usunięto rozmowy: ${ids.size}"
+            notify(if (ids.size == 1) "Usunięto rozmowę" else "Usunięto rozmowy: ${ids.size}")
             if (openThreadId?.let { it in ids } == true) home()
             reload()
         }
@@ -419,21 +489,28 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun toggleMute(threadId: Long) {
         val on = !settings.isMuted(threadId)
         settings.toggleMuted(threadId, on)
-        toast = if (on) "Powiadomienia wyciszone" else "Powiadomienia włączone"
+        notify(if (on) "Powiadomienia wyciszone" else "Powiadomienia włączone") { settings.toggleMuted(threadId, !on); reload() }
         reload()
     }
 
     fun blockAddresses(addresses: List<String>, threadIds: Set<Long> = emptySet(), alsoDelete: Boolean = false) {
+        val added = addresses.toSet() - settings.blockedNumbers
+        val wasArchived = threadIds.filter { settings.isArchived(it) }
         settings.blockedNumbers = settings.blockedNumbers + addresses
         selection = emptySet()
-        toast = if (addresses.size == 1) "Zablokowano ${addresses[0]}" else "Zablokowano numery: ${addresses.size}"
         when {
             threadIds.isEmpty() -> Unit
-            alsoDelete -> deleteThreads(threadIds)
+            alsoDelete -> trashThreads(threadIds)
             else -> {
                 settings.toggleArchived(threadIds, true)
                 reload()
             }
+        }
+        notify(if (addresses.size == 1) "Zablokowano ${addresses[0]}" else "Zablokowano numery: ${addresses.size}") {
+            settings.blockedNumbers = settings.blockedNumbers - added
+            if (alsoDelete) settings.toggleTrashed(threadIds, false)
+            else { settings.toggleArchived(threadIds, false); settings.toggleArchived(wasArchived, true) }
+            reload()
         }
     }
 
@@ -490,10 +567,20 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** Wiadomość znika od razu, a z telefonu jest usuwana dopiero po czasie na „Cofnij”. */
     fun deleteMessages(list: List<Message>) {
-        viewModelScope.launch {
-            withContext(Dispatchers.IO) { list.forEach { store.deleteMessage(it) } }
-            toast = if (list.size == 1) "Usunięto wiadomość" else "Usunięto wiadomości: ${list.size}"
+        val ids = list.map { it.id }.toSet()
+        hiddenMessages = hiddenMessages + ids
+        messages = messages.filter { it.id !in ids }
+        val job = viewModelScope.launch {
+            delay(UNDO_MS)
+            withContext(Dispatchers.IO + kotlinx.coroutines.NonCancellable) { list.forEach { store.deleteMessage(it) } }
+            hiddenMessages = hiddenMessages - ids
+            loadMessages(markRead = false)
+        }
+        notify(if (list.size == 1) "Usunięto wiadomość" else "Usunięto wiadomości: ${list.size}") {
+            job.cancel()
+            hiddenMessages = hiddenMessages - ids
             loadMessages(markRead = false)
         }
     }
@@ -584,5 +671,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     companion object {
         const val PAGE = 150
+        const val UNDO_MS = 5_000L
+        const val TRASH_DAYS = 30
     }
 }

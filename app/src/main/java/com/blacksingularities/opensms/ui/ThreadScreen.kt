@@ -287,11 +287,11 @@ fun ThreadScreen(vm: AppViewModel, s: Screen.Thread) {
     }
     info?.let { m -> MessageInfo(m) { info = null } }
     confirmDeleteMsg?.let { m ->
-        ConfirmDialog("Usunąć wiadomość?", "Wiadomość zostanie trwale usunięta z telefonu.", "Usuń", onDismiss = { confirmDeleteMsg = null }) { vm.deleteMessages(listOf(m)) }
+        ConfirmDialog("Usunąć wiadomość?", "Wiadomość zostanie usunięta z telefonu. Przez chwilę możesz to cofnąć.", "Usuń", onDismiss = { confirmDeleteMsg = null }) { vm.deleteMessages(listOf(m)) }
     }
     if (confirmDeleteThread && threadId != null) {
-        ConfirmDialog("Usunąć rozmowę?", "Wszystkie wiadomości z tej rozmowy zostaną trwale usunięte.", "Usuń", onDismiss = { confirmDeleteThread = false }) {
-            vm.deleteThreads(setOf(threadId))
+        ConfirmDialog("Usunąć rozmowę?", "Rozmowa trafi do kosza na ${AppViewModel.TRASH_DAYS} dni.", "Usuń", onDismiss = { confirmDeleteThread = false }) {
+            vm.trashThreads(setOf(threadId))
         }
     }
     if (confirmBlock) {

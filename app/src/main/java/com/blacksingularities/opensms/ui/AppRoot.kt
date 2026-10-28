@@ -11,6 +11,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -104,27 +105,47 @@ fun AppRoot(
 @Composable
 private fun Toast(vm: AppViewModel) {
     val message = vm.toast
-    LaunchedEffect(message) {
+    val undo = vm.undo
+    LaunchedEffect(vm.toastId) {
         if (message != null) {
-            delay(2600)
+            delay(if (undo != null) AppViewModel.UNDO_MS else 2600)
             vm.toast = null
         }
     }
     Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).imePadding().padding(bottom = 90.dp), contentAlignment = Alignment.BottomCenter) {
         AnimatedVisibility(visible = message != null, enter = slideInVertically { it } + fadeIn(), exit = slideOutVertically { it } + fadeOut()) {
-            Text(
-                message ?: "",
-                color = Palette.Ink,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
+            Row(
+                Modifier
                     .padding(horizontal = 24.dp)
                     .widthIn(max = 480.dp)
                     .clip(RoundedCornerShape(50))
                     .background(Color.White)
-                    .padding(horizontal = 18.dp, vertical = 11.dp),
-            )
+                    .padding(start = 18.dp, end = if (undo != null) 6.dp else 18.dp, top = 6.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    message ?: "",
+                    color = Palette.Ink,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(vertical = 5.dp),
+                )
+                if (undo != null) {
+                    Text(
+                        "Cofnij",
+                        color = Color.White,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .padding(start = 12.dp)
+                            .clip(RoundedCornerShape(50))
+                            .background(Palette.Ink)
+                            .clickable { vm.toast = null; undo() }
+                            .padding(horizontal = 14.dp, vertical = 7.dp),
+                    )
+                }
+            }
         }
     }
 }
