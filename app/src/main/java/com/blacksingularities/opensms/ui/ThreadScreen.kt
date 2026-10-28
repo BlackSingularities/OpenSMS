@@ -44,7 +44,7 @@ import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Error
 import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.InsertDriveFile
+import androidx.compose.material.icons.automirrored.rounded.InsertDriveFile
 import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.Notifications
@@ -56,7 +56,7 @@ import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.Share
-import androidx.compose.material.icons.rounded.Shortcut
+import androidx.compose.material.icons.automirrored.rounded.Shortcut
 import androidx.compose.material.icons.rounded.Unarchive
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -502,7 +502,7 @@ private fun MediaPart(vm: AppViewModel, m: Message, part: MmsPart) {
                     when {
                         part.isAudio -> Icons.Rounded.AudioFile
                         part.isVcard -> Icons.Rounded.ContactPage
-                        else -> Icons.Rounded.InsertDriveFile
+                        else -> Icons.AutoMirrored.Rounded.InsertDriveFile
                     },
                     null,
                     tint = if (out) Palette.Ink else Color.White,
@@ -575,7 +575,7 @@ private fun MessageActions(vm: AppViewModel, m: Message, onDismiss: () -> Unit, 
         if (m.box == MsgBox.FAILED || vm.isFailedOrStuck(m)) {
             ActionRow(Icons.Rounded.Refresh, "Wyślij ponownie") { onDismiss(); vm.retry(m) }
         }
-        ActionRow(Icons.Rounded.Shortcut, "Przekaż dalej") {
+        ActionRow(Icons.AutoMirrored.Rounded.Shortcut, "Przekaż dalej") {
             onDismiss()
             val attachments = m.media.map { com.blacksingularities.opensms.data.Attachment(it.uri, it.contentType, it.name ?: "zalacznik") }
             vm.push(Screen.Compose(text = m.body, attachments = attachments))
@@ -629,6 +629,6 @@ private fun MessageInfo(m: Message, onDismiss: () -> Unit) {
             InfoRow(Icons.Rounded.Info, "Długość", "${m.body.length} znaków · ${plural(calc[0], "część", "części", "części")} SMS")
         }
         if (m.isMms && m.sizeBytes > 0) InfoRow(Icons.Rounded.Info, "Rozmiar", formatSize(m.sizeBytes))
-        if (m.media.isNotEmpty()) InfoRow(Icons.Rounded.InsertDriveFile, "Załączniki", m.media.joinToString(", ") { it.name ?: it.contentType })
+        if (m.media.isNotEmpty()) InfoRow(Icons.AutoMirrored.Rounded.InsertDriveFile, "Załączniki", m.media.joinToString(", ") { it.name ?: it.contentType })
     }
 }

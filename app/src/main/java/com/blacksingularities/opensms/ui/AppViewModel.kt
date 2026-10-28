@@ -406,7 +406,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 settings.forgetThreads(ids)
             }
             toast = if (ids.size == 1) "Usunięto rozmowę" else "Usunięto rozmowy: ${ids.size}"
-            if (openThreadId in ids) home()
+            if (openThreadId?.let { it in ids } == true) home()
             reload()
         }
     }
@@ -422,7 +422,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         settings.blockedNumbers = settings.blockedNumbers + addresses
         selection = emptySet()
         toast = if (addresses.size == 1) "Zablokowano ${addresses[0]}" else "Zablokowano numery: ${addresses.size}"
-        if (alsoDelete && threadIds.isNotEmpty()) deleteThreads(threadIds) else archive(threadIds, true)
+        when {
+            threadIds.isEmpty() -> Unit
+            alsoDelete -> deleteThreads(threadIds)
+            else -> {
+                settings.toggleArchived(threadIds, true)
+                reload()
+            }
+        }
     }
 
     fun unblock(address: String) {

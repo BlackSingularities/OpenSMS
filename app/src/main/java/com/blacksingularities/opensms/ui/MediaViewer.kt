@@ -20,7 +20,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Close
-import androidx.compose.material.icons.rounded.OpenInNew
+import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.Share
@@ -125,7 +125,7 @@ fun MediaViewer(vm: AppViewModel, s: Screen.Media) {
                         .onFailure { vm.toast = it.message ?: "Nie udało się zapisać" }
                 })
                 Spacer(Modifier.width(8.dp))
-                RoundIcon(Icons.Rounded.OpenInNew, "Otwórz w innej aplikacji", onClick = { openExternal() })
+                RoundIcon(Icons.AutoMirrored.Rounded.OpenInNew, "Otwórz w innej aplikacji", onClick = { openExternal() })
             }
         }
     }

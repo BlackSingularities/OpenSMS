@@ -37,10 +37,10 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AudioFile
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.ContactPage
-import androidx.compose.material.icons.rounded.InsertDriveFile
+import androidx.compose.material.icons.automirrored.rounded.InsertDriveFile
 import androidx.compose.material.icons.rounded.PhotoLibrary
 import androidx.compose.material.icons.rounded.Schedule
-import androidx.compose.material.icons.rounded.ShortText
+import androidx.compose.material.icons.automirrored.rounded.ShortText
 import androidx.compose.material.icons.rounded.SimCard
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -236,7 +236,7 @@ fun Composer(vm: AppViewModel, s: Screen.Thread) {
                 attachMenu = false
                 pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
             }
-            ActionRow(Icons.Rounded.InsertDriveFile, "Plik", "Nagranie, dokument, dowolny plik") {
+            ActionRow(Icons.AutoMirrored.Rounded.InsertDriveFile, "Plik", "Nagranie, dokument, dowolny plik") {
                 attachMenu = false
                 pickFile.launch(arrayOf("audio/*", "video/*", "image/*", "text/*", "*/*"))
             }
@@ -244,7 +244,7 @@ fun Composer(vm: AppViewModel, s: Screen.Thread) {
                 attachMenu = false
                 pickContact.launch(null)
             }
-            ActionRow(Icons.Rounded.ShortText, "Szablony", "Gotowe szybkie odpowiedzi") {
+            ActionRow(Icons.AutoMirrored.Rounded.ShortText, "Szablony", "Gotowe szybkie odpowiedzi") {
                 attachMenu = false
                 templates = true
             }
@@ -261,7 +261,7 @@ fun Composer(vm: AppViewModel, s: Screen.Thread) {
                 Text("Brak szablonów. Dodasz je w Ustawieniach.", color = Palette.TextDim, fontSize = 14.sp, modifier = Modifier.padding(20.dp))
             }
             vm.settings.templates.forEach { t ->
-                ActionRow(Icons.Rounded.ShortText, t.text) {
+                ActionRow(Icons.AutoMirrored.Rounded.ShortText, t.text) {
                     templates = false
                     val v = value
                     val newText = v.text.substring(0, v.selection.start) + t.text + v.text.substring(v.selection.end)
@@ -313,7 +313,7 @@ private fun AttachmentChip(a: Attachment, onRemove: () -> Unit) {
                     when {
                         a.mime.startsWith("audio/") -> Icons.Rounded.AudioFile
                         a.mime.contains("vcard") -> Icons.Rounded.ContactPage
-                        else -> Icons.Rounded.InsertDriveFile
+                        else -> Icons.AutoMirrored.Rounded.InsertDriveFile
                     },
                     null,
                     tint = Color.White,

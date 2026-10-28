@@ -51,7 +51,7 @@ import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.Key
-import androidx.compose.material.icons.rounded.KeyboardReturn
+import androidx.compose.material.icons.automirrored.rounded.KeyboardReturn
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.PersonOff
@@ -210,7 +210,7 @@ private fun ColumnScope.MainSettings(vm: AppViewModel, onRequestPermissions: () 
     Group("Wysyłanie") {
         SwitchRow(Icons.Rounded.DoneAll, "Raporty doręczenia", "Informacja „Dostarczono” pod wysłanym SMS", s.deliveryReports) { s.deliveryReports = it }
         ActionRow(Icons.Rounded.Draw, "Podpis", s.signature.ifBlank { "Brak – dotknij, aby dodać" }) { signatureDialog = true }
-        SwitchRow(Icons.Rounded.KeyboardReturn, "Enter wysyła", "Klawisz Enter wysyła zamiast nowej linii", s.enterSends) { s.enterSends = it }
+        SwitchRow(Icons.AutoMirrored.Rounded.KeyboardReturn, "Enter wysyła", "Klawisz Enter wysyła zamiast nowej linii", s.enterSends) { s.enterSends = it }
         SwitchRow(Icons.Rounded.Spellcheck, "Bez polskich znaków", "Zamienia ą→a, ł→l… – SMS mieści 160 zamiast 70 znaków", s.stripAccents) { s.stripAccents = it }
         SwitchRow(Icons.Rounded.Groups, "Rozmowy grupowe jako MMS", "Wyłączone: osobny SMS do każdego odbiorcy", s.groupAsMms) { s.groupAsMms = it }
         SwitchRow(Icons.Rounded.Image, "Długie wiadomości jako MMS", "Zamiast wielu części SMS", s.longAsMms) { s.longAsMms = it }

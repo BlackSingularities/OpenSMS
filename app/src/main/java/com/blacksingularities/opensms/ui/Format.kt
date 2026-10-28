@@ -5,7 +5,7 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-private val PL = Locale("pl", "PL")
+private val PL = Locale.forLanguageTag("pl-PL")
 
 private fun cal(t: Long) = Calendar.getInstance().apply { timeInMillis = t }
 

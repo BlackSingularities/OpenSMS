@@ -106,7 +106,7 @@ fun ConversationsScreen(vm: AppViewModel) {
     var confirmDelete by remember { mutableStateOf<Set<Long>?>(null) }
     var confirmBlock by remember { mutableStateOf<Set<Long>?>(null) }
     val listState = rememberLazyListState()
-    val items = vm.visibleConversations()
+    val visible = vm.visibleConversations()
 
     Box(Modifier.fillMaxSize().background(Palette.Ink).windowInsetsPadding(WindowInsets.safeDrawing)) {
         Column(Modifier.fillMaxSize()) {
@@ -125,7 +125,7 @@ fun ConversationsScreen(vm: AppViewModel) {
                 ) {
                     item(key = "banner") { UpdateBanner(vm, Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) }
                     item(key = "filters") { Filters(vm) }
-                    if (vm.loaded && items.isEmpty()) {
+                    if (vm.loaded && visible.isEmpty()) {
                         item(key = "empty") {
                             when (vm.filter) {
                                 Filter.ALL -> EmptyState(Icons.Rounded.Forum, "Brak rozmów", "Napisz pierwszą wiadomość przyciskiem na dole ekranu.")
@@ -135,7 +135,7 @@ fun ConversationsScreen(vm: AppViewModel) {
                             }
                         }
                     }
-                    items(items, key = { it.conv.threadId }) { item ->
+                    items(visible, key = { it.conv.threadId }) { item ->
                         SwipeRow(vm, item) {
                             ConversationRow(
                                 vm = vm,
