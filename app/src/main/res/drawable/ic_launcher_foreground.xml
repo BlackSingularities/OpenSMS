@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Znak marki: biały dymek z trzema kropkami (108 dp, strefa bezpieczna 66 dp). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M54,30C39.6,30 28,39.4 28,51C28,57.4 31.6,63.1 37.2,67L35,78L46.6,71.2C49,71.7 51.5,72 54,72C68.4,72 80,62.6 80,51C80,39.4 68.4,30 54,30Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M38,51a4,4 0,1 1,8 0a4,4 0,1 1,-8 0Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M50,51a4,4 0,1 1,8 0a4,4 0,1 1,-8 0Z" />
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M62,51a4,4 0,1 1,8 0a4,4 0,1 1,-8 0Z" />
+</vector>
