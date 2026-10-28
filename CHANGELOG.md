@@ -1,5 +1,14 @@
 # Zmiany
 
+## 1.0.0
+
+Pierwsza stabilna wersja OpenSMS.
+
+- **Kosz**: usunięte rozmowy czekają 30 dni na przywrócenie; można je też usunąć na zawsze albo opróżnić kosz.
+- **Cofnij**: po archiwizacji, przypięciu, oznaczeniu, wyciszeniu, blokadzie i usunięciu komunikat ma przycisk „Cofnij”.
+- **Filtry jako ikony**: kategorie u góry pokazują same ikony, nazwę ma tylko otwarta.
+- Wydania powstają z tagów `vX.Y.Z`.
+
 ## 0.1.0
 
 Pierwsze wydanie OpenSMS – pełna aplikacja do SMS i MMS w stylu OpenPDF.
