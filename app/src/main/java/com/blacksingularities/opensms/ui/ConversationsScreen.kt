@@ -124,7 +124,6 @@ fun ConversationsScreen(vm: AppViewModel) {
                     contentPadding = PaddingValues(bottom = 110.dp),
                 ) {
                     item(key = "banner") { UpdateBanner(vm, Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) }
-                    item(key = "filters") { Filters(vm) }
                     if (vm.loaded && visible.isEmpty()) {
                         item(key = "empty") {
                             when (vm.filter) {
@@ -212,16 +211,10 @@ fun ConversationsScreen(vm: AppViewModel) {
 
 @Composable
 private fun Header(vm: AppViewModel, onMenu: () -> Unit) {
-    Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 12.dp, bottom = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) {
-            Text(if (vm.filter == Filter.ARCHIVED) "Archiwum" else "Wiadomości", fontSize = 30.sp, fontWeight = FontWeight.Black, color = Color.White)
-            val unread = vm.unreadCount
-            Text(
-                if (unread > 0) plural(unread, "nieprzeczytana", "nieprzeczytane", "nieprzeczytanych") else "Wszystko przeczytane",
-                fontSize = 13.sp,
-                color = Palette.TextDim,
-            )
-        }
+    // Bez tytułu: karty filtrów stoją po lewej, naprzeciwko wyszukiwania i menu.
+    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Filters(vm, Modifier.weight(1f))
+        Spacer(Modifier.width(8.dp))
         RoundIcon(Icons.Rounded.Search, "Szukaj", onClick = { vm.openSearch() })
         Spacer(Modifier.width(8.dp))
         RoundIcon(Icons.Rounded.MoreVert, "Menu", badge = if (vm.updatePending) "1" else null, onClick = onMenu)
@@ -229,13 +222,14 @@ private fun Header(vm: AppViewModel, onMenu: () -> Unit) {
 }
 
 @Composable
-private fun Filters(vm: AppViewModel) {
+private fun Filters(vm: AppViewModel, modifier: Modifier = Modifier) {
     val unreadThreads = vm.conversations.count { it.conv.unread > 0 }
     val pinned = vm.conversations.count { it.pinned }
     val archived = vm.conversations.count { it.archived }
     Row(
-        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp),
+        modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         TabChip(null, Filter.ALL.label, vm.filter == Filter.ALL) { vm.filter = Filter.ALL }
         TabChip(null, Filter.UNREAD.label, vm.filter == Filter.UNREAD, count = unreadThreads) { vm.filter = Filter.UNREAD }
