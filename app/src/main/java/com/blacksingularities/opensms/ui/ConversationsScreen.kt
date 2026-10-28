@@ -492,18 +492,20 @@ fun ConversationRow(
         Avatar(item.title, item.photo, size = 52.dp, group = c.addresses.size > 1, colored = vm.settings.colorAvatars, selected = selected)
         Column(Modifier.weight(1f).padding(start = 14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    item.title,
-                    color = Color.White,
-                    fontSize = 16.sp,
-                    fontWeight = if (unread) FontWeight.Black else FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                if (item.muted) Icon(Icons.Rounded.NotificationsOff, "Wyciszona", tint = Palette.TextFaint, modifier = Modifier.padding(start = 5.dp).size(14.dp))
-                if (item.pinned) Icon(Icons.Rounded.PushPin, "Przypięta", tint = Palette.TextDim, modifier = Modifier.padding(start = 5.dp).size(14.dp))
-                Spacer(Modifier.weight(1f))
+                // Nazwa i znaczniki zajmują całą wolną szerokość, dzięki czemu data trafia na prawą krawędź.
+                Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        item.title,
+                        color = Color.White,
+                        fontSize = 16.sp,
+                        fontWeight = if (unread) FontWeight.Black else FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    if (item.muted) Icon(Icons.Rounded.NotificationsOff, "Wyciszona", tint = Palette.TextFaint, modifier = Modifier.padding(start = 5.dp).size(14.dp))
+                    if (item.pinned) Icon(Icons.Rounded.PushPin, "Przypięta", tint = Palette.TextDim, modifier = Modifier.padding(start = 5.dp).size(14.dp))
+                }
                 Text(
                     formatListTime(c.date, vm.settings.relativeTimes),
                     color = if (unread) Color.White else Palette.TextFaint,
