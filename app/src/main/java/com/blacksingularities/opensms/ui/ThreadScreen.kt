@@ -198,7 +198,8 @@ fun ThreadScreen(vm: AppViewModel, s: Screen.Thread) {
                             m = m,
                             highlight = s.highlight,
                             showSender = showSender,
-                            groupedWithNewer = newer != null && newer.incoming == m.incoming && newer.address == m.address && newer.date - m.date < 120_000 && isSameDay(newer.date, m.date),
+                            groupedWithOlder = groupedWith(m, older),
+                            groupedWithNewer = groupedWith(m, newer),
                             showStatus = m.key == lastOutgoing || m.box == MsgBox.FAILED,
                             onLongClick = { selected = m },
                         )
@@ -318,6 +319,14 @@ private fun DayHeader(t: Long) {
     }
 }
 
+/** Wiadomości tego samego nadawcy, wysłane w odstępie do dwóch minut tego samego dnia, tworzą serię. */
+private fun groupedWith(m: Message, other: Message?): Boolean =
+    other != null &&
+        other.incoming == m.incoming &&
+        other.address == m.address &&
+        kotlin.math.abs(other.date - m.date) < 120_000 &&
+        isSameDay(other.date, m.date)
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MessageBubble(
@@ -325,6 +334,7 @@ private fun MessageBubble(
     m: Message,
     highlight: String?,
     showSender: Boolean,
+    groupedWithOlder: Boolean,
     groupedWithNewer: Boolean,
     showStatus: Boolean,
     onLongClick: () -> Unit,
@@ -339,10 +349,21 @@ private fun MessageBubble(
     val failed = m.box == MsgBox.FAILED
     val big = 20.dp
     val small = 6.dp
+    // Dymek w serii jest spłaszczony od strony sąsiada, samotny zostaje zaokrąglony dookoła.
     val shape = if (out) {
-        RoundedCornerShape(big, big, if (groupedWithNewer) small else big, small)
+        RoundedCornerShape(
+            topStart = big,
+            topEnd = if (groupedWithOlder) small else big,
+            bottomEnd = if (groupedWithNewer) small else big,
+            bottomStart = big,
+        )
     } else {
-        RoundedCornerShape(big, big, small, if (groupedWithNewer) small else big)
+        RoundedCornerShape(
+            topStart = if (groupedWithOlder) small else big,
+            topEnd = big,
+            bottomEnd = big,
+            bottomStart = if (groupedWithNewer) small else big,
+        )
     }
     val onlyEmoji = m.body.isNotEmpty() && m.media.isEmpty() && m.body.length <= 8 && m.body.none { it.isLetterOrDigit() } && m.body.isNotBlank()
 
