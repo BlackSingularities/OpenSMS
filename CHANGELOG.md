@@ -2,6 +2,10 @@
 
 ## 1.0.0
 
+- Nowa strona aplikacji z opisem funkcji.
+- Jednolita informacja o autorze (Adam Rędzikowski · redzikowski.com) i przycisk „Postaw kawę”.
+- Usunięte odnośniki do repozytorium z interfejsu.
+
 Pierwsza stabilna wersja OpenSMS.
 
 - **Kosz**: usunięte rozmowy czekają 30 dni na przywrócenie; można je też usunąć na zawsze albo opróżnić kosz.
