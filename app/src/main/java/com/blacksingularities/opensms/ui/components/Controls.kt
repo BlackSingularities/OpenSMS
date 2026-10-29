@@ -476,34 +476,38 @@ fun DarkField(
     )
 }
 
-/** Zakładka-chip (filtry listy rozmów). */
+/** Zakładka-chip (filtry listy rozmów); licznik to mała plakietka w prawym górnym rogu, nie zmienia rozmiaru chipa. */
 @Composable
 fun TabChip(icon: ImageVector?, label: String, selected: Boolean, modifier: Modifier = Modifier, count: Int = 0, onClick: () -> Unit) {
-    Row(
-        modifier
-            .clip(RoundedCornerShape(50))
-            .background(if (selected) Color.White else Palette.PanelHigh)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 7.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (icon != null) {
-            Icon(icon, label, tint = if (selected) Palette.Ink else Color.White, modifier = Modifier.size(16.dp))
-            if (selected) Spacer(Modifier.width(5.dp))
+    Box(modifier) {
+        Row(
+            Modifier
+                .clip(RoundedCornerShape(50))
+                .background(if (selected) Color.White else Palette.PanelHigh)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 12.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (icon != null) {
+                Icon(icon, label, tint = if (selected) Palette.Ink else Color.White, modifier = Modifier.size(16.dp))
+                if (selected) Spacer(Modifier.width(5.dp))
+            }
+            // Nieaktywne zakładki z ikoną pokazują tylko ikonę; nazwa tylko przy otwartej.
+            if (icon == null || selected) Text(label, color = if (selected) Palette.Ink else Color.White, fontSize = 13.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
         }
-        // Nieaktywne zakładki z ikoną pokazują tylko ikonę; nazwa tylko przy otwartej.
-        if (icon == null || selected) Text(label, color = if (selected) Palette.Ink else Color.White, fontSize = 13.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
         if (count > 0) {
-            Spacer(Modifier.width(5.dp))
             Text(
-                count.toString(),
-                color = if (selected) Color.White else Palette.Ink,
-                fontSize = 10.sp,
+                if (count > 99) "99+" else count.toString(),
+                color = Color.White,
+                fontSize = 8.sp,
+                lineHeight = 8.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .offset(x = 3.dp, y = (-4).dp)
                     .clip(RoundedCornerShape(50))
-                    .background(if (selected) Palette.Ink else Color.White)
-                    .padding(horizontal = 5.dp, vertical = 1.dp),
+                    .background(Palette.Record)
+                    .padding(horizontal = 3.dp, vertical = 1.dp),
             )
         }
     }
