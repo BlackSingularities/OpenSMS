@@ -1,5 +1,10 @@
 # Zmiany
 
+## 1.0.2
+
+- Dopasowane kolorystycznie tła ikon aplikacji i spójne zasoby graficzne.
+- Nowa ikona aplikacji, warianty systemowe i odświeżona grafika na stronie projektu.
+
 ## 1.0.0
 
 - Nowa strona aplikacji z opisem funkcji.
