@@ -1,5 +1,7 @@
 # OpenSMS
 
+<img src="artwork/app-icon.png" alt="OpenSMS" width="128" />
+
 **Otwarta aplikacja do SMS i MMS na Androida** – czarno-biały, szybki interfejs w stylu OpenPDF, bez reklam i śledzenia. Wiadomości zostają w telefonie; aplikacja łączy się z internetem wyłącznie po aktualizacje.
 
 [![Build & Release](../../actions/workflows/android.yml/badge.svg)](../../actions/workflows/android.yml)
