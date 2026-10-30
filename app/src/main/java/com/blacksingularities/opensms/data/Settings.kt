@@ -92,6 +92,8 @@ class Settings private constructor(context: Context) {
     var pinned by stringSetPref("pinned")
     var archived by stringSetPref("archived")
     var muted by stringSetPref("muted")
+    /** Kosz: wpisy „threadId:czas przeniesienia”. */
+    var trash by stringSetPref("trash")
     var failedMms by stringSetPref("failedMms")
 
     // Aktualizacje
@@ -113,6 +115,17 @@ class Settings private constructor(context: Context) {
     fun isArchived(threadId: Long) = threadId.toString() in archived
     fun isMuted(threadId: Long) = threadId.toString() in muted
 
+    fun trashedAt(): Map<Long, Long> = trash.mapNotNull { e ->
+        val (id, t) = e.split(':').takeIf { it.size == 2 } ?: return@mapNotNull null
+        (id.toLongOrNull() ?: return@mapNotNull null) to (t.toLongOrNull() ?: 0L)
+    }.toMap()
+
+    fun toggleTrashed(ids: Collection<Long>, on: Boolean) {
+        val keep = trash.filterNot { e -> ids.any { e.startsWith("$it:") } }.toSet()
+        val now = System.currentTimeMillis()
+        trash = if (on) keep + ids.map { "$it:$now" } else keep
+    }
+
     fun togglePinned(ids: Collection<Long>, on: Boolean) {
         pinned = if (on) pinned + ids.map { it.toString() } else pinned - ids.map { it.toString() }.toSet()
     }
@@ -131,6 +144,7 @@ class Settings private constructor(context: Context) {
         pinned = pinned - keys
         archived = archived - keys
         muted = muted - keys
+        toggleTrashed(ids, false)
         val d = drafts.toMutableMap()
         ids.forEach { d.remove(it) }
         writeDrafts(d)
