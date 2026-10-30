@@ -539,7 +539,7 @@ fun ConversationRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 val text = buildAnnotatedString {
                     if (!draft.isNullOrBlank()) {
-                        withStyle(SpanStyle(color = Palette.Record, fontWeight = FontWeight.Bold)) { append("Szkic: ") }
+                        withStyle(SpanStyle(color = Palette.Accent, fontWeight = FontWeight.Bold)) { append("Szkic: ") }
                         append(draft)
                     } else {
                         append(c.snippet.replace('\n', ' '))

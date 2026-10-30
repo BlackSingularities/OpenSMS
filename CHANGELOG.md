@@ -1,5 +1,11 @@
 # Zmiany
 
+## 1.0.3
+
+- Liczniki na zakładkach w kolorze akcentu, przypięte do rogu ikony – nie poszerzają już przycisków.
+- Wspólna plakietka licznika dla zakładek i przycisku menu, stała wysokość zakładek i płynna zmiana koloru.
+- „Szkic:” na liście rozmów w kolorze akcentu (czerwień zostaje dla błędów i usuwania).
+
 ## 1.0.2
 
 - Dopasowane kolorystycznie tła ikon aplikacji i spójne zasoby graficzne.

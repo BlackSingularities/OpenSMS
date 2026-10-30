@@ -6,6 +6,11 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.layout.layout
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.border
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -18,7 +23,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -121,18 +125,40 @@ fun RoundIcon(
             )
         }
         if (badge != null) {
-            Box(
-                Modifier
-                    .align(Alignment.TopEnd)
-                    .offset(x = 3.dp, y = (-2).dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(Palette.Record)
-                    .padding(horizontal = 5.dp, vertical = 1.dp),
-            ) {
-                Text(badge, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+            // Kotwica w prawym górnym rogu ikony (nie koła), poza pomiarem przycisku.
+            Box(Modifier.align(Alignment.Center).size(size * 0.5f)) {
+                CountBadge(badge, ring = bg, modifier = Modifier.align(Alignment.TopEnd))
             }
         }
     }
+}
+
+/**
+ * Plakietka licznika w kolorze akcentu. Ma zerowy rozmiar w układzie – rysuje się wycentrowana
+ * na rogu rodzica, więc nigdy nie poszerza przycisku. [ring] to obwódka w kolorze tła pod spodem.
+ */
+@Composable
+fun CountBadge(text: String, ring: Color, modifier: Modifier = Modifier, fill: Color = Palette.Accent, ink: Color = Palette.Ink) {
+    Text(
+        text,
+        color = ink,
+        fontSize = 9.sp,
+        lineHeight = 9.sp,
+        fontWeight = FontWeight.Bold,
+        maxLines = 1,
+        modifier = modifier
+            .layout { measurable, _ ->
+                val p = measurable.measure(Constraints())
+                layout(0, 0) { p.place(-p.width / 2 + 2.dp.roundToPx(), -p.height / 2) }
+            }
+            .border(1.5.dp, ring, RoundedCornerShape(50))
+            .padding(1.5.dp)
+            .clip(RoundedCornerShape(50))
+            .background(fill)
+            .widthIn(min = 13.dp)
+            .padding(horizontal = 3.5.dp, vertical = 2.dp),
+        textAlign = TextAlign.Center,
+    )
 }
 
 @Composable
@@ -476,40 +502,34 @@ fun DarkField(
     )
 }
 
-/** Zakładka-chip (filtry listy rozmów); licznik to mała plakietka w prawym górnym rogu, nie zmienia rozmiaru chipa. */
+/** Zakładka-chip (filtry listy rozmów); licznik to plakietka w kolorze akcentu na rogu ikony, nie zmienia rozmiaru chipa. */
 @Composable
 fun TabChip(icon: ImageVector?, label: String, selected: Boolean, modifier: Modifier = Modifier, count: Int = 0, onClick: () -> Unit) {
-    Box(modifier) {
-        Row(
-            Modifier
-                .clip(RoundedCornerShape(50))
-                .background(if (selected) Color.White else Palette.PanelHigh)
-                .clickable(onClick = onClick)
-                .padding(horizontal = 12.dp, vertical = 7.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (icon != null) {
-                Icon(icon, label, tint = if (selected) Palette.Ink else Color.White, modifier = Modifier.size(16.dp))
-                if (selected) Spacer(Modifier.width(5.dp))
+    val bg by animateColorAsState(if (selected) Color.White else Palette.PanelHigh, tween(160), label = "tabBg")
+    val fg = if (selected) Palette.Ink else Color.White
+    val badge = if (count > 0) (if (count > 99) "99+" else count.toString()) else null
+    Row(
+        modifier
+            .height(34.dp)
+            .clip(RoundedCornerShape(50))
+            .background(bg)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (icon != null) {
+            Box(Modifier.size(18.dp)) {
+                Icon(icon, label, tint = fg, modifier = Modifier.fillMaxSize())
+                // Na otwartej (białej) zakładce akcent zlałby się z tłem – plakietka jest wtedy odwrócona.
+                if (badge != null) {
+                    if (selected) CountBadge(badge, ring = bg, modifier = Modifier.align(Alignment.TopEnd), fill = Palette.Ink, ink = Palette.Accent)
+                    else CountBadge(badge, ring = bg, modifier = Modifier.align(Alignment.TopEnd))
+                }
             }
-            // Nieaktywne zakładki z ikoną pokazują tylko ikonę; nazwa tylko przy otwartej.
-            if (icon == null || selected) Text(label, color = if (selected) Palette.Ink else Color.White, fontSize = 13.sp, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium)
+            if (selected) Spacer(Modifier.width(6.dp))
         }
-        if (count > 0) {
-            Text(
-                if (count > 99) "99+" else count.toString(),
-                color = Color.White,
-                fontSize = 8.sp,
-                lineHeight = 8.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .offset(x = 3.dp, y = (-4).dp)
-                    .clip(RoundedCornerShape(50))
-                    .background(Palette.Record)
-                    .padding(horizontal = 3.dp, vertical = 1.dp),
-            )
-        }
+        // Nieaktywne zakładki z ikoną pokazują tylko ikonę; nazwa tylko przy otwartej.
+        if (icon == null || selected) Text(label, color = fg, fontSize = 13.sp, fontWeight = FontWeight.Bold)
     }
 }
 
