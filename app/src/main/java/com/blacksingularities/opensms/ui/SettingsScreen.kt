@@ -28,6 +28,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Email
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.automirrored.rounded.ShortText
@@ -299,6 +300,9 @@ private fun ColumnScope.MainSettings(vm: AppViewModel, onRequestPermissions: () 
     Group("O aplikacji") {
         ActionRow(Icons.Rounded.Person, "Pomysł i wykonanie", "Adam Rędzikowski · redzikowski.com") {
             runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://redzikowski.com"))) }
+        }
+        ActionRow(Icons.Rounded.Email, "Kontakt", "kontakt@redzikowski.com") {
+            runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("mailto:kontakt@redzikowski.com"))) }
         }
         ActionRow(Icons.Rounded.LocalCafe, "Postaw kawę", "Wesprzyj rozwój na buycoffee.to") {
             runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://buycoffee.to/adamredzikowski"))) }
