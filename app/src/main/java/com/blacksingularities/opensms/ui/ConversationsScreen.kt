@@ -24,17 +24,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -107,6 +104,7 @@ import com.blacksingularities.opensms.ui.components.EmptyState
 import com.blacksingularities.opensms.ui.components.RoundIcon
 import com.blacksingularities.opensms.ui.components.TabChip
 import com.blacksingularities.opensms.ui.theme.Palette
+import com.blacksingularities.opensms.util.Emoticons
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -127,7 +125,7 @@ fun ConversationsScreen(vm: AppViewModel) {
         if (zooming) showZoom = true else { delay(900); showZoom = false }
     }
 
-    Box(Modifier.fillMaxSize().background(Palette.Ink).windowInsetsPadding(WindowInsets.safeDrawing)) {
+    Box(Modifier.fillMaxSize().background(Palette.Ink).screenPadding()) {
         Column(Modifier.fillMaxSize()) {
             when {
                 vm.selection.isNotEmpty() -> SelectionBar(vm, onDelete = { confirmDelete = vm.selection }, onBlock = { confirmBlock = vm.selection })
@@ -272,7 +270,7 @@ private fun Header(vm: AppViewModel, onMenu: () -> Unit) {
     // Bez tytułu: karty filtrów stoją po lewej, naprzeciwko wyszukiwania i menu.
     // Wyszukiwarka wyrasta z lupy i płynnie rozciąga się w lewo, zakrywając karty.
     val p by animateFloatAsState(if (vm.searching) 1f else 0f, tween(280, easing = FastOutSlowInEasing), label = "searchGrow")
-    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, top = 2.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         BoxWithConstraints(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
             if (p < 1f) {
                 Filters(vm, Modifier.fillMaxWidth().padding(end = 52.dp).graphicsLayer { alpha = 1f - p })
@@ -460,10 +458,14 @@ private fun SearchHit(vm: AppViewModel, m: Message, q: String) {
                 Text(title, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
                 Text(formatListTime(m.date, false), color = Palette.TextFaint, fontSize = 12.sp)
             }
-            Text(highlight(snippetAround(m.body, q), q), color = Palette.TextDim, fontSize = 14.sp, maxLines = 3, overflow = TextOverflow.Ellipsis, lineHeight = 19.sp)
+            Text(highlight(snippetAround(maybeEmoji(vm, m.body), q), q), color = Palette.TextDim, fontSize = 14.sp, maxLines = 3, overflow = TextOverflow.Ellipsis, lineHeight = 19.sp)
         }
     }
 }
+
+/** Podgląd na liście pokazuje emotikony jako emoji, gdy zamiana jest włączona w ustawieniach. */
+private fun maybeEmoji(vm: AppViewModel, text: String): String =
+    if (vm.settings.emoticons) Emoticons.apply(text) else text
 
 private fun snippetAround(text: String, q: String): String {
     val i = text.indexOf(q, ignoreCase = true)

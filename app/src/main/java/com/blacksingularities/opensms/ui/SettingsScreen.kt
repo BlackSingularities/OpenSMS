@@ -13,18 +13,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -40,6 +37,7 @@ import androidx.compose.material.icons.rounded.AspectRatio
 import androidx.compose.material.icons.rounded.CalendarToday
 import androidx.compose.material.icons.rounded.ColorLens
 import androidx.compose.material.icons.rounded.EmojiEmotions
+import androidx.compose.material.icons.rounded.Mood
 import androidx.compose.material.icons.rounded.FormatLineSpacing
 import androidx.compose.material.icons.rounded.RoundedCorner
 import androidx.compose.material.icons.rounded.TouchApp
@@ -103,7 +101,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.blacksingularities.opensms.data.Backup
-import com.blacksingularities.opensms.data.BubbleShape
 import com.blacksingularities.opensms.data.BubbleSpacing
 import com.blacksingularities.opensms.data.BubbleTint
 import com.blacksingularities.opensms.data.BubbleWidth
@@ -150,8 +147,8 @@ fun SettingsScreen(vm: AppViewModel, page: SettingsPage, onRequestPermissions: (
         SettingsPage.SCHEDULED -> "Zaplanowane"
         SettingsPage.STATS -> "Statystyki"
     }
-    Column(Modifier.fillMaxSize().background(Palette.Ink).windowInsetsPadding(WindowInsets.safeDrawing).imePadding()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Column(Modifier.fillMaxSize().background(Palette.Ink).screenPadding().imePadding()) {
+        Row(Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = 2.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             RoundIcon(Icons.AutoMirrored.Rounded.ArrowBack, "Wstecz", flat = true, onClick = { vm.back() })
             Text(title, fontSize = 22.sp, fontWeight = FontWeight.Black, color = Color.White, modifier = Modifier.padding(start = 6.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
@@ -217,11 +214,38 @@ private fun ConversationLookGroup(vm: AppViewModel) {
         }
         SwitchRow(Icons.Rounded.TouchApp, "Powiększanie dwoma palcami", "W rozmowie i na liście rozmów – rozsuń palce, żeby powiększyć, zsuń, żeby pomniejszyć", s.pinchZoom) { s.pinchZoom = it }
         CompactChoice(Icons.Rounded.ColorLens, "Kolor moich wiadomości", BubbleTint.entries, s.bubbleTint, { it.label }) { s.bubbleTint = it }
-        CompactChoice(Icons.Rounded.RoundedCorner, "Kształt dymków", BubbleShape.entries, s.bubbleShape, { it.label }) { s.bubbleShape = it }
+        Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                RowIcon(Icons.Rounded.RoundedCorner)
+                Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                    Text("Zaokrąglenie dymków", fontSize = 15.sp, color = Color.White)
+                    Text(
+                        when {
+                            s.bubbleRadius <= 0f -> "Kanciaste rogi"
+                            s.bubbleRadius >= 28f -> "Maksymalnie okrągłe · 28 dp"
+                            else -> "${s.bubbleRadius.roundToInt()} dp"
+                        },
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
+                        color = Palette.TextDim,
+                    )
+                }
+                if (s.bubbleRadius != 22f) PillButton("Domyślne", primary = false, onClick = { s.bubbleRadius = 22f })
+            }
+            Slider(
+                value = s.bubbleRadius,
+                onValueChange = { s.bubbleRadius = it.roundToInt().toFloat() },
+                valueRange = 0f..28f,
+                steps = 27,
+                modifier = Modifier.padding(start = 40.dp).height(36.dp),
+                colors = SliderDefaults.colors(thumbColor = Color.White, activeTrackColor = Color.White, inactiveTrackColor = Palette.PanelHigher),
+            )
+        }
         CompactChoice(Icons.Rounded.AspectRatio, "Szerokość dymków", BubbleWidth.entries, s.bubbleWidth, { it.label }) { s.bubbleWidth = it }
         CompactChoice(Icons.Rounded.FormatLineSpacing, "Odstępy", BubbleSpacing.entries, s.bubbleSpacing, { it.label }) { s.bubbleSpacing = it }
         CompactChoice(Icons.Rounded.AccessTime, "Godzina wiadomości", TimeMode.entries, s.timeMode, { it.label }) { s.timeMode = it }
         SwitchRow(Icons.Rounded.EmojiEmotions, "Duże emoji", "Wiadomość z samych emoji bez dymka, w dużym rozmiarze", s.bigEmoji) { s.bigEmoji = it }
+        SwitchRow(Icons.Rounded.Mood, "Emotikony jako emoji", "„:)”, „;)”, „<3” i podobne pokazują się jako emoji – też w środku zdania", s.emoticons) { s.emoticons = it }
         SwitchRow(Icons.Rounded.CalendarToday, "Nagłówki dni", "„Dzisiaj”, „Wczoraj” i daty między wiadomościami", s.dayHeaders) { s.dayHeaders = it }
         SwitchRow(Icons.Rounded.AccountCircle, "Awatary w grupach", "Zdjęcie nadawcy przy wiadomościach w rozmowach grupowych", s.senderAvatars) { s.senderAvatars = it }
     }

@@ -16,7 +16,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.blacksingularities.opensms.data.BubbleShape
 import com.blacksingularities.opensms.data.BubbleSpacing
 import com.blacksingularities.opensms.data.BubbleTint
 import com.blacksingularities.opensms.data.BubbleWidth
@@ -42,12 +41,14 @@ data class BubbleColors(val background: Color, val content: Color, val outline: 
 data class MessageStyle(
     val zoom: Float,
     val textScale: Float,
-    val shape: BubbleShape,
+    /** Promień rogów dymka w dp (przed pomnożeniem przez [zoom]). */
+    val radius: Float,
     val width: BubbleWidth,
     val tint: BubbleTint,
     val spacing: BubbleSpacing,
     val timeMode: TimeMode,
     val bigEmoji: Boolean,
+    val emoticons: Boolean,
     val dayHeaders: Boolean,
     val senderAvatars: Boolean,
 ) {
@@ -60,8 +61,9 @@ data class MessageStyle(
     fun smallSp(v: Float): TextUnit = (v * (1f + (fontScale - 1f) * 0.6f)).coerceAtLeast(9f).sp
 
     fun shape(out: Boolean, groupedWithOlder: Boolean, groupedWithNewer: Boolean): RoundedCornerShape {
-        val big = dp(shape.radius)
-        val small = dp(shape.joined)
+        val big = dp(radius)
+        // Spłaszczony róg w serii: ułamek promienia, ale zawsze choć trochę zaokrąglony.
+        val small = dp((radius * 0.28f).coerceAtLeast(if (radius > 0f) 2f else 0f))
         // Dymek w serii jest spłaszczony od strony sąsiada, samotny zostaje zaokrąglony dookoła.
         return if (out) {
             RoundedCornerShape(topStart = big, topEnd = if (groupedWithOlder) small else big, bottomEnd = if (groupedWithNewer) small else big, bottomStart = big)
@@ -83,12 +85,13 @@ data class MessageStyle(
         fun from(s: Settings, zoom: Float = s.bubbleZoom) = MessageStyle(
             zoom = zoom.coerceIn(MIN_ZOOM, MAX_ZOOM),
             textScale = s.textSize.scale,
-            shape = s.bubbleShape,
+            radius = s.bubbleRadius.coerceIn(0f, 28f),
             width = s.bubbleWidth,
             tint = s.bubbleTint,
             spacing = s.bubbleSpacing,
             timeMode = s.timeMode,
             bigEmoji = s.bigEmoji,
+            emoticons = s.emoticons,
             dayHeaders = s.dayHeaders,
             senderAvatars = s.senderAvatars,
         )

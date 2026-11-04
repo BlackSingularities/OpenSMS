@@ -33,18 +33,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -131,6 +128,7 @@ import com.blacksingularities.opensms.ui.components.RoundIcon
 import com.blacksingularities.opensms.ui.components.rememberBitmap
 import com.blacksingularities.opensms.ui.theme.Palette
 import com.blacksingularities.opensms.data.TimeMode
+import com.blacksingularities.opensms.util.Emoticons
 import com.blacksingularities.opensms.util.OneTimeCode
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
@@ -182,9 +180,9 @@ fun ThreadScreen(vm: AppViewModel, s: Screen.Thread) {
         if (i >= 0) listState.scrollToItem(i)
     }
 
-    Column(Modifier.fillMaxSize().background(Palette.Ink).windowInsetsPadding(WindowInsets.safeDrawing).imePadding()) {
+    Column(Modifier.fillMaxSize().background(Palette.Ink).screenPadding().imePadding()) {
         // Pasek rozmowy
-        Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = 2.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             RoundIcon(Icons.AutoMirrored.Rounded.ArrowBack, "Wstecz", flat = true, onClick = { vm.back() })
             Row(
                 Modifier.weight(1f).clip(RoundedCornerShape(50)).clickable { details = true }.padding(horizontal = 6.dp, vertical = 4.dp),
@@ -452,7 +450,7 @@ private fun DayHeader(t: Long, style: MessageStyle) {
             color = Palette.TextDim,
             fontSize = style.smallSp(12f),
             fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.clip(RoundedCornerShape(50)).background(Palette.PanelHigh).padding(horizontal = 12.dp, vertical = 4.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 2.dp),
         )
     }
 }
@@ -487,7 +485,9 @@ private fun MessageBubble(
     val failed = m.box == MsgBox.FAILED
     val colors = style.colors(out, failed)
     val shape = style.shape(out, groupedWithOlder, groupedWithNewer)
-    val onlyEmoji = style.bigEmoji && m.body.isNotBlank() && m.media.isEmpty() && m.body.length <= 8 && m.body.none { it.isLetterOrDigit() }
+    // Emotikony tekstowe pokazujemy jako emoji; w bazie zostaje oryginalna treść wiadomości.
+    val body = remember(m.body, style.emoticons) { if (style.emoticons) Emoticons.apply(m.body) else m.body }
+    val onlyEmoji = style.bigEmoji && body.isNotBlank() && m.media.isEmpty() && body.length <= 12 && body.none { it.isLetterOrDigit() }
     val code = remember(m.body, m.incoming) { if (m.incoming) OneTimeCode.find(m.body) else null }
     var copied by remember(code) { mutableStateOf(false) }
     LaunchedEffect(copied) {
@@ -555,10 +555,10 @@ private fun MessageBubble(
                         modifier = Modifier.padding(start = style.dp(14f), end = style.dp(14f), top = style.dp(9f)),
                     )
                 }
-                if (m.body.isNotEmpty()) {
+                if (body.isNotEmpty()) {
                     CodeAwareText(
-                        text = m.body,
-                        annotated = linkify(m.body, highlight, colors.lightBackground, code, copied, copyCode),
+                        text = body,
+                        annotated = linkify(body, highlight, colors.lightBackground, code, copied, copyCode),
                         code = code,
                         copied = copied,
                         style = style,
@@ -760,7 +760,7 @@ private fun MediaPart(vm: AppViewModel, m: Message, part: MmsPart, style: Messag
                     .padding(3.dp)
                     .widthIn(min = 120.dp, max = maxWidth - 6.dp)
                     .heightIn(min = 80.dp, max = style.dp(360f).coerceIn(200.dp, 640.dp))
-                    .clip(RoundedCornerShape((style.dp(style.shape.radius) - 3.dp).coerceAtLeast(3.dp)))
+                    .clip(RoundedCornerShape((style.dp(style.radius) - 3.dp).coerceAtLeast(3.dp)))
                     .background(Palette.PanelHigher)
                     .clickable { vm.push(Screen.Media(part.uri, part.contentType, part.name)) },
                 contentAlignment = Alignment.Center,

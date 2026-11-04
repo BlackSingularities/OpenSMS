@@ -1,5 +1,12 @@
 # Zmiany
 
+## 1.3.0
+
+- **Emotikony jako emoji**: `:)`, `;)`, `:D`, `XD`, `<3` i kilkadziesiąt innych wzorów pokazuje się w rozmowie i na liście jako emoji – także w środku zdania i zaraz po wyrazie („ok;)”). Sama emotikona w wiadomości rośnie jak duże emoji. Adresy `http://` i zwykłe wyrazy zostają nietknięte, a w bazie zapisana jest oryginalna treść. Przełącznik w Ustawieniach → Wygląd rozmowy.
+- **Zaokrąglenie dymków suwakiem** (0–28 dp) zamiast trzech gotowych kształtów, z podglądem na żywo i przyciskiem powrotu do domyślnych 22 dp.
+- Nagłówek daty nad wiadomościami bez tła i obwódki – sam napis.
+- Zniknął pusty pas między paskiem stanu a treścią: wszystkie widoki zaczynają się od razu pod paskiem.
+
 ## 1.2.1
 
 - Baner aktualizacji w aplikacji pokazuje tylko numer nowej wersji, bez listy zmian z GitHuba.

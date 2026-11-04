@@ -17,13 +17,6 @@ enum class TextSize(val label: String, val scale: Float) {
     HUGE("Bardzo duży", 1.32f),
 }
 
-/** Kształt dymków w rozmowie: promień rogów samotnego dymka i dymka w serii (dp). */
-enum class BubbleShape(val label: String, val radius: Float, val joined: Float) {
-    ROUND("Okrągłe", 22f, 6f),
-    SOFT("Łagodne", 14f, 5f),
-    SHARP("Kanciaste", 6f, 3f),
-}
-
 /** Maksymalna szerokość dymka jako ułamek szerokości ekranu. */
 enum class BubbleWidth(val label: String, val fraction: Float) {
     NARROW("Wąskie", 0.7f),
@@ -107,12 +100,15 @@ class Settings private constructor(context: Context) {
     /** Ostatni wybór „Zapytaj przed wysłaniem” w arkuszu planowania. */
     var scheduleConfirm by boolPref("scheduleConfirm", false)
     var pinchZoom by boolPref("pinchZoom", true)
-    var bubbleShape by enumPref("bubbleShape", BubbleShape.ROUND)
+    /** Promień rogów dymka w dp (0 – kanciaste, 28 – mocno okrągłe). */
+    var bubbleRadius by floatPref("bubbleRadius", 22f)
     var bubbleWidth by enumPref("bubbleWidth", BubbleWidth.NORMAL)
     var bubbleTint by enumPref("bubbleTint", BubbleTint.WHITE)
     var bubbleSpacing by enumPref("bubbleSpacing", BubbleSpacing.NORMAL)
     var timeMode by enumPref("timeMode", TimeMode.GROUP)
     var bigEmoji by boolPref("bigEmoji", true)
+    /** Emotikony tekstowe (`:)`, `<3`) pokazywane jako emoji. */
+    var emoticons by boolPref("emoticons", true)
     var dayHeaders by boolPref("dayHeaders", true)
     var senderAvatars by boolPref("senderAvatars", false)
 
