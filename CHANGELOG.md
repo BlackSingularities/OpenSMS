@@ -1,5 +1,13 @@
 # Zmiany
 
+## 1.1.0
+
+- **Powiększanie dwoma palcami** w rozmowie: dymki, tekst, odstępy i zdjęcia płynnie rosną i maleją; plakietka pokazuje procent, dotknięcie wraca do 100%.
+- **Wygląd rozmowy** w ustawieniach z podglądem na żywo: kolor własnych wiadomości (biały, srebrny, grafit, kontur), kształt i szerokość dymków, odstępy, kiedy pokazywać godzinę, duże emoji, nagłówki dni i awatary w rozmowach grupowych.
+- **Kody jednorazowe**: kod w treści jest wyróżniony i kopiuje się po dotknięciu; pod wiadomością dyskretny przycisk z kodem, który po skopiowaniu na chwilę pokazuje „Skopiowano”.
+- Po wysłaniu pole pisania od razu się czyści i tekst nie zostaje już jako szkic; przy błędzie wysyłki treść wraca do pola.
+- Przełączniki w ustawieniach nie wychodzą poza ekran, podpowiedź w polu pisania ma ten sam rozmiar co wpisywany tekst, dymki dopasowują szerokość do ekranu.
+
 ## 1.0.3
 
 - Liczniki na zakładkach w kolorze akcentu, przypięte do rogu ikony – nie poszerzają już przycisków.

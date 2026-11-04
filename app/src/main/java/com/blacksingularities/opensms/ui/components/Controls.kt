@@ -271,8 +271,10 @@ fun <T> CompactChoice(
                 )
             }
         }
+        // Segmenty dzielą szerokość po równo – przy długich nazwach i wąskim ekranie nic nie wychodzi poza kartę.
         Row(
             Modifier
+                .fillMaxWidth()
                 .padding(start = 44.dp, top = 6.dp)
                 .clip(RoundedCornerShape(50))
                 .background(Color.White.copy(alpha = 0.06f))
@@ -280,12 +282,14 @@ fun <T> CompactChoice(
         ) {
             options.forEach { o ->
                 val sel = o == selected
+                val bg by animateColorAsState(if (sel) Color.White else Color.Transparent, label = "segment")
                 Box(
                     Modifier
+                        .weight(1f)
                         .clip(RoundedCornerShape(50))
-                        .background(if (sel) Color.White else Color.Transparent)
+                        .background(bg)
                         .clickable { onSelect(o) }
-                        .padding(horizontal = 11.dp, vertical = 6.dp),
+                        .padding(horizontal = 4.dp, vertical = 7.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -293,6 +297,8 @@ fun <T> CompactChoice(
                         fontSize = 12.sp,
                         fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium,
                         color = if (sel) Palette.Ink else Palette.TextDim,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }

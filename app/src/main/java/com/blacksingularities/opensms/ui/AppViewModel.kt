@@ -520,7 +520,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     // --- Wiadomości ---
 
-    fun send(target: Screen.Thread, text: String, attachments: List<Attachment>, subId: Int) {
+    fun send(target: Screen.Thread, text: String, attachments: List<Attachment>, subId: Int, onFailure: () -> Unit = {}) {
         if (target.addresses.isEmpty() || (text.isBlank() && attachments.isEmpty())) return
         busy = if (attachments.isNotEmpty()) "Przygotowywanie MMS…" else null
         viewModelScope.launch {
@@ -530,13 +530,17 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             busy = null
             result.onSuccess { r ->
                 target.threadId?.let { settings.saveDraft(it, "") }
+                settings.saveDraft(r.threadId, "")
                 if (target.threadId == null || target.threadId != r.threadId) {
                     replace(Screen.Thread(r.threadId, target.addresses))
                 } else {
                     replace(target.copy(text = "", attachments = emptyList(), highlight = null))
                     loadMessages(markRead = false)
                 }
-            }.onFailure { toast = it.message ?: "Nie udało się wysłać" }
+            }.onFailure {
+                toast = it.message ?: "Nie udało się wysłać"
+                onFailure()
+            }
         }
     }
 

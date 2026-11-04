@@ -131,16 +131,31 @@ fun Composer(vm: AppViewModel, s: Screen.Thread) {
     }
 
     val sendable = (text.isNotBlank() || attachments.isNotEmpty()) && s.addresses.isNotEmpty() && vm.busy == null
+    // Pole czyści się od razu po naciśnięciu „Wyślij” – tekst nie zostaje w polu ani w szkicu.
+    // Gdy wysyłka się nie uda, treść i załączniki wracają do pola.
+    fun clearField() {
+        value = TextFieldValue("")
+        attachments = emptyList()
+        vm.saveDraft(s.threadId, "")
+    }
     fun send() {
         if (!sendable) return
         if (vm.settings.haptics) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-        vm.send(s, text, attachments, subId)
+        val sentText = text
+        val sentAttachments = attachments
+        clearField()
+        vm.send(s, sentText, sentAttachments, subId) {
+            if (value.text.isEmpty() && attachments.isEmpty()) {
+                value = TextFieldValue(sentText, TextRange(sentText.length))
+                attachments = sentAttachments
+            }
+        }
     }
 
     Column(Modifier.fillMaxWidth().background(Palette.Ink).padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 8.dp)) {
         AnimatedVisibility(visible = attachments.isNotEmpty()) {
             Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(start = 48.dp, bottom = 6.dp),
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(start = 52.dp, bottom = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 attachments.forEach { a -> AttachmentChip(a) { attachments = attachments - a } }
@@ -180,18 +195,21 @@ fun Composer(vm: AppViewModel, s: Screen.Thread) {
                     .background(Palette.PanelHigh)
                     .padding(horizontal = 16.dp, vertical = 11.dp),
             ) {
-                Box {
+                // Podpowiedź ma ten sam krój i wysokość linii co wpisywany tekst, więc nic nie skacze przy pierwszej literze.
+                val fieldStyle = TextStyle(color = Color.White, fontSize = (16 * vm.settings.textSize.scale).sp, lineHeight = (21 * vm.settings.textSize.scale).sp)
+                Box(contentAlignment = Alignment.CenterStart) {
                     if (text.isEmpty()) {
                         Text(
                             if (attachments.isNotEmpty()) "Dodaj opis…" else if (s.addresses.size > 1 && vm.settings.groupAsMms) "Wiadomość grupowa (MMS)" else "Wiadomość",
-                            color = Palette.TextFaint,
-                            fontSize = 16.sp,
+                            style = fieldStyle.copy(color = Palette.TextFaint),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                     BasicTextField(
                         value = value,
                         onValueChange = { value = it },
-                        textStyle = TextStyle(color = Color.White, fontSize = (16 * vm.settings.textSize.scale).sp, lineHeight = (21 * vm.settings.textSize.scale).sp),
+                        textStyle = fieldStyle,
                         cursorBrush = SolidColor(Color.White),
                         keyboardOptions = KeyboardOptions(
                             capitalization = KeyboardCapitalization.Sentences,
@@ -274,7 +292,9 @@ fun Composer(vm: AppViewModel, s: Screen.Thread) {
     if (scheduleMenu) {
         ScheduleSheet(onDismiss = { scheduleMenu = false }) { time ->
             scheduleMenu = false
-            vm.schedule(s, text, time, subId)
+            val scheduledText = text
+            clearField()
+            vm.schedule(s, scheduledText, time, subId)
         }
     }
 }

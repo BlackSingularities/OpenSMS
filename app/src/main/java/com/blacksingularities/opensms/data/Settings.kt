@@ -17,6 +17,42 @@ enum class TextSize(val label: String, val scale: Float) {
     HUGE("Bardzo duży", 1.32f),
 }
 
+/** Kształt dymków w rozmowie: promień rogów samotnego dymka i dymka w serii (dp). */
+enum class BubbleShape(val label: String, val radius: Float, val joined: Float) {
+    ROUND("Okrągłe", 22f, 6f),
+    SOFT("Łagodne", 14f, 5f),
+    SHARP("Kanciaste", 6f, 3f),
+}
+
+/** Maksymalna szerokość dymka jako ułamek szerokości ekranu. */
+enum class BubbleWidth(val label: String, val fraction: Float) {
+    NARROW("Wąskie", 0.7f),
+    NORMAL("Zwykłe", 0.8f),
+    WIDE("Szerokie", 0.92f),
+}
+
+/** Kolor własnych (wysłanych) dymków. */
+enum class BubbleTint(val label: String) {
+    WHITE("Biały"),
+    SILVER("Srebrny"),
+    GRAPHITE("Grafit"),
+    OUTLINE("Kontur"),
+}
+
+/** Odstępy między wiadomościami (dp): między seriami i wewnątrz serii. */
+enum class BubbleSpacing(val label: String, val gap: Float, val joined: Float) {
+    COMPACT("Ciasno", 4f, 1f),
+    NORMAL("Zwykle", 7f, 2f),
+    AIRY("Luźno", 12f, 3f),
+}
+
+/** Kiedy pokazywać godzinę pod wiadomością. */
+enum class TimeMode(val label: String) {
+    GROUP("Pod serią"),
+    EVERY("Pod każdą"),
+    TAP("Po dotknięciu"),
+}
+
 /** Limit rozmiaru MMS – zdjęcia są zmniejszane, żeby zmieścić się w limicie operatora. */
 enum class MmsLimit(val label: String, val bytes: Int) {
     KB300("300 KB", 300 * 1024),
@@ -61,6 +97,19 @@ class Settings private constructor(context: Context) {
     var swipeRight by enumPref("swipeRight", SwipeAction.READ)
     var haptics by boolPref("haptics", true)
     var relativeTimes by boolPref("relativeTimes", true)
+
+    // Wygląd rozmowy
+    /** Powiększenie dymków zmieniane gestem dwóch palców (0.6–2.0). */
+    var bubbleZoom by floatPref("bubbleZoom", 1f)
+    var pinchZoom by boolPref("pinchZoom", true)
+    var bubbleShape by enumPref("bubbleShape", BubbleShape.ROUND)
+    var bubbleWidth by enumPref("bubbleWidth", BubbleWidth.NORMAL)
+    var bubbleTint by enumPref("bubbleTint", BubbleTint.WHITE)
+    var bubbleSpacing by enumPref("bubbleSpacing", BubbleSpacing.NORMAL)
+    var timeMode by enumPref("timeMode", TimeMode.GROUP)
+    var bigEmoji by boolPref("bigEmoji", true)
+    var dayHeaders by boolPref("dayHeaders", true)
+    var senderAvatars by boolPref("senderAvatars", false)
 
     // Wysyłanie
     var deliveryReports by boolPref("deliveryReports", false)
@@ -262,6 +311,7 @@ class Settings private constructor(context: Context) {
 
     private fun boolPref(key: String, def: Boolean) = Pref(key, def, { sp.getBoolean(key, def) }, { putBoolean(key, it) })
     private fun intPref(key: String, def: Int) = Pref(key, def, { sp.getInt(key, def) }, { putInt(key, it) })
+    private fun floatPref(key: String, def: Float) = Pref(key, def, { sp.getFloat(key, def) }, { putFloat(key, it) })
     private fun longPref(key: String, def: Long) = Pref(key, def, { sp.getLong(key, def) }, { putLong(key, it) })
     private fun stringPref(key: String, def: String) = Pref(key, def, { sp.getString(key, def) ?: def }, { putString(key, it) })
     private fun stringSetPref(key: String) = Pref<Set<String>>(key, emptySet(), { sp.getStringSet(key, emptySet())?.toSet() ?: emptySet() }, { putStringSet(key, it) })

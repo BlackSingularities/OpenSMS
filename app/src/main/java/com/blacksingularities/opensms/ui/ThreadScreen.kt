@@ -4,7 +4,17 @@ import android.content.Intent
 import android.net.Uri
 import android.provider.ContactsContract
 import android.util.Patterns
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -38,6 +48,7 @@ import androidx.compose.material.icons.rounded.Archive
 import androidx.compose.material.icons.rounded.AudioFile
 import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.Call
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ContactPage
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Delete
@@ -58,12 +69,14 @@ import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material.icons.automirrored.rounded.Shortcut
 import androidx.compose.material.icons.rounded.Unarchive
+import androidx.compose.material.icons.rounded.ZoomIn
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -81,11 +94,13 @@ import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLinkStyles
 import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.blacksingularities.opensms.data.Box as MsgBox
@@ -107,7 +122,10 @@ import com.blacksingularities.opensms.ui.components.PillButton
 import com.blacksingularities.opensms.ui.components.RoundIcon
 import com.blacksingularities.opensms.ui.components.rememberBitmap
 import com.blacksingularities.opensms.ui.theme.Palette
+import com.blacksingularities.opensms.data.TimeMode
 import com.blacksingularities.opensms.util.OneTimeCode
+import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 
 @Composable
 fun ThreadScreen(vm: AppViewModel, s: Screen.Thread) {
@@ -128,6 +146,22 @@ fun ThreadScreen(vm: AppViewModel, s: Screen.Thread) {
     val messages = if (threadId != null && vm.openThreadId == threadId) vm.messages else emptyList()
     val reversed = remember(messages) { messages.asReversed() }
     val listState = rememberLazyListState()
+    val haptic = LocalHapticFeedback.current
+
+    // Powiększenie dymków: na żywo w trakcie gestu, zapisywane po podniesieniu palców.
+    var liveZoom by remember { mutableFloatStateOf(vm.settings.bubbleZoom) }
+    var zooming by remember { mutableStateOf(false) }
+    var showZoom by remember { mutableStateOf(false) }
+    LaunchedEffect(vm.settings.bubbleZoom) { if (!zooming) liveZoom = vm.settings.bubbleZoom }
+    LaunchedEffect(zooming, liveZoom) {
+        if (zooming) {
+            showZoom = true
+        } else {
+            delay(900)
+            showZoom = false
+        }
+    }
+    val style = MessageStyle.from(vm.settings, liveZoom)
 
     // Nowa wiadomość na dole – przewiń, jeśli użytkownik jest przy końcu rozmowy.
     LaunchedEffect(messages.lastOrNull()?.key) {
@@ -172,7 +206,29 @@ fun ThreadScreen(vm: AppViewModel, s: Screen.Thread) {
         }
 
         // Wiadomości
-        Box(Modifier.weight(1f).fillMaxWidth()) {
+        BoxWithConstraints(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .pinchToZoom(
+                    enabled = vm.settings.pinchZoom,
+                    onStart = { zooming = true },
+                    onZoom = { z ->
+                        val before = liveZoom
+                        val next = (liveZoom * z).coerceIn(MIN_ZOOM, MAX_ZOOM)
+                        // Delikatne „kliknięcie” przy przejściu przez 100% – łatwo wrócić do zwykłego rozmiaru.
+                        if ((before - 1f) * (next - 1f) < 0f && vm.settings.haptics) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        liveZoom = next
+                    },
+                    onEnd = {
+                        zooming = false
+                        if (kotlin.math.abs(liveZoom - 1f) < 0.04f) liveZoom = 1f
+                        vm.settings.bubbleZoom = liveZoom
+                    },
+                ),
+        ) {
+            val horizontalPadding = style.dp(10f).coerceIn(6.dp, 16.dp)
+            val bubbleMax = ((maxWidth - horizontalPadding * 2) * style.width.fraction).coerceAtLeast(160.dp)
             if (threadId == null || (messages.isEmpty() && vm.openThreadId == threadId && item == null)) {
                 EmptyState(
                     Icons.Rounded.Person,
@@ -185,18 +241,21 @@ fun ThreadScreen(vm: AppViewModel, s: Screen.Thread) {
                 state = listState,
                 reverseLayout = true,
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 10.dp),
+                contentPadding = PaddingValues(horizontal = horizontalPadding, vertical = 10.dp),
             ) {
                 val lastOutgoing = messages.lastOrNull { !it.incoming }?.key
                 itemsIndexed(reversed, key = { _, m -> m.key }) { i, m ->
                     val older = reversed.getOrNull(i + 1)
                     val newer = reversed.getOrNull(i - 1)
                     Column(Modifier.fillMaxWidth()) {
-                        if (older == null || !isSameDay(older.date, m.date)) DayHeader(m.date)
+                        if (style.dayHeaders && (older == null || !isSameDay(older.date, m.date))) DayHeader(m.date, style)
                         val showSender = !single && m.incoming && (older == null || older.address != m.address || !older.incoming)
                         MessageBubble(
                             vm = vm,
                             m = m,
+                            style = style,
+                            maxWidth = bubbleMax,
+                            showAvatar = !single && style.senderAvatars,
                             highlight = s.highlight,
                             showSender = showSender,
                             groupedWithOlder = groupedWith(m, older),
@@ -214,6 +273,15 @@ fun ThreadScreen(vm: AppViewModel, s: Screen.Thread) {
                     }
                 }
             }
+            ZoomIndicator(
+                visible = showZoom,
+                zoom = liveZoom,
+                modifier = Modifier.align(Alignment.TopCenter).padding(top = 10.dp),
+                onReset = {
+                    liveZoom = 1f
+                    vm.settings.bubbleZoom = 1f
+                },
+            )
         }
 
         if (s.addresses.isNotEmpty() && s.addresses.none { canReplyTo(it) }) NoReplyNote(s.addresses) else Composer(vm, s)
@@ -332,13 +400,35 @@ private fun NoReplyNote(addresses: List<String>) {
     }
 }
 
+/** Plakietka z bieżącym powiększeniem – widoczna w trakcie gestu; dotknięcie wraca do 100%. */
 @Composable
-private fun DayHeader(t: Long) {
-    Box(Modifier.fillMaxWidth().padding(top = 14.dp, bottom = 8.dp), contentAlignment = Alignment.Center) {
+private fun ZoomIndicator(visible: Boolean, zoom: Float, modifier: Modifier, onReset: () -> Unit) {
+    AnimatedVisibility(visible, modifier = modifier, enter = fadeIn() + scaleIn(initialScale = 0.85f), exit = fadeOut() + scaleOut(targetScale = 0.9f)) {
+        Row(
+            Modifier
+                .clip(RoundedCornerShape(50))
+                .background(Palette.PanelHigher)
+                .clickable(onClick = onReset)
+                .padding(horizontal = 12.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(Icons.Rounded.ZoomIn, null, tint = Color.White, modifier = Modifier.size(15.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("${(zoom * 100).roundToInt()}%", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            if (zoom != 1f) {
+                Text("  ·  dotknij: 100%", color = Palette.TextDim, fontSize = 12.sp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DayHeader(t: Long, style: MessageStyle) {
+    Box(Modifier.fillMaxWidth().padding(top = style.dp(14f), bottom = style.dp(8f)), contentAlignment = Alignment.Center) {
         Text(
             formatDayHeader(t),
             color = Palette.TextDim,
-            fontSize = 12.sp,
+            fontSize = style.smallSp(12f),
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.clip(RoundedCornerShape(50)).background(Palette.PanelHigh).padding(horizontal = 12.dp, vertical = 4.dp),
         )
@@ -358,6 +448,9 @@ private fun groupedWith(m: Message, other: Message?): Boolean =
 private fun MessageBubble(
     vm: AppViewModel,
     m: Message,
+    style: MessageStyle,
+    maxWidth: Dp,
+    showAvatar: Boolean,
     highlight: String?,
     showSender: Boolean,
     groupedWithOlder: Boolean,
@@ -369,99 +462,191 @@ private fun MessageBubble(
     val haptic = LocalHapticFeedback.current
     var expanded by remember { mutableStateOf(false) }
     val out = !m.incoming
-    val scale = vm.settings.textSize.scale
-    val bg = if (out) Palette.BubbleOut else Palette.BubbleIn
-    val fg = if (out) Palette.Ink else Color.White
     val failed = m.box == MsgBox.FAILED
-    val big = 20.dp
-    val small = 6.dp
-    // Dymek w serii jest spłaszczony od strony sąsiada, samotny zostaje zaokrąglony dookoła.
-    val shape = if (out) {
-        RoundedCornerShape(
-            topStart = big,
-            topEnd = if (groupedWithOlder) small else big,
-            bottomEnd = if (groupedWithNewer) small else big,
-            bottomStart = big,
-        )
-    } else {
-        RoundedCornerShape(
-            topStart = if (groupedWithOlder) small else big,
-            topEnd = big,
-            bottomEnd = big,
-            bottomStart = if (groupedWithNewer) small else big,
-        )
+    val colors = style.colors(out, failed)
+    val shape = style.shape(out, groupedWithOlder, groupedWithNewer)
+    val onlyEmoji = style.bigEmoji && m.body.isNotBlank() && m.media.isEmpty() && m.body.length <= 8 && m.body.none { it.isLetterOrDigit() }
+    val code = remember(m.body, m.incoming) { if (m.incoming) OneTimeCode.find(m.body) else null }
+    var copied by remember(code) { mutableStateOf(false) }
+    LaunchedEffect(copied) {
+        if (copied) {
+            delay(1800)
+            copied = false
+        }
     }
-    val onlyEmoji = m.body.isNotEmpty() && m.media.isEmpty() && m.body.length <= 8 && m.body.none { it.isLetterOrDigit() } && m.body.isNotBlank()
+    val copyCode: () -> Unit = {
+        if (code != null) {
+            MediaActions.copy(context, code, "Kod")
+            if (vm.settings.haptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            copied = true
+        }
+    }
 
-    Column(
-        Modifier.fillMaxWidth().padding(top = if (groupedWithNewer) 2.dp else 6.dp),
-        horizontalAlignment = if (out) Alignment.End else Alignment.Start,
+    Row(
+        Modifier.fillMaxWidth().padding(top = if (groupedWithNewer) style.dp(style.spacing.joined) else style.dp(style.spacing.gap)),
+        verticalAlignment = Alignment.Bottom,
+        horizontalArrangement = if (out) Arrangement.End else Arrangement.Start,
     ) {
-        if (showSender) {
-            Text(Contacts.displayName(context, m.address), color = Palette.TextDim, fontSize = 12.sp, modifier = Modifier.padding(start = 12.dp, bottom = 2.dp))
-        }
-        Column(
-            Modifier
-                .widthIn(max = 300.dp)
-                .clip(shape)
-                .background(if (onlyEmoji) Color.Transparent else if (failed) Palette.Record.copy(alpha = 0.18f) else bg)
-                .combinedClickable(
-                    onClick = {
-                        when {
-                            failed -> vm.retry(m)
-                            else -> expanded = !expanded
-                        }
-                    },
-                    onLongClick = {
-                        if (vm.settings.haptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onLongClick()
-                    },
-                ),
-        ) {
-            if (m.pendingUrl != null) {
-                PendingMms(vm, m)
-            }
-            m.media.forEach { part -> MediaPart(vm, m, part) }
-            if (m.subject != null) {
-                Text(m.subject, color = if (failed) Color.White else fg, fontWeight = FontWeight.Bold, fontSize = (15 * scale).sp, modifier = Modifier.padding(start = 14.dp, end = 14.dp, top = 9.dp))
-            }
-            if (m.body.isNotEmpty()) {
-                Text(
-                    linkify(m.body, highlight, out && !failed),
-                    color = if (failed) Color.White else fg,
-                    fontSize = if (onlyEmoji) (40 * scale).sp else (16 * scale).sp,
-                    lineHeight = if (onlyEmoji) (46 * scale).sp else (21 * scale).sp,
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
-                )
-            }
-        }
-        // Kod jednorazowy: przycisk kopiowania pod wiadomością.
-        if (m.incoming) {
-            val code = remember(m.body) { OneTimeCode.find(m.body) }
-            if (code != null) {
-                Row(
-                    Modifier
-                        .padding(top = 4.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(Palette.PanelHigh)
-                        .clickable { MediaActions.copy(context, code, "Kod"); vm.toast = "Skopiowano kod $code" }
-                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(Icons.Rounded.Key, null, tint = Color.White, modifier = Modifier.size(15.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Kopiuj kod $code", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+        // Awatar nadawcy w rozmowach grupowych: przy ostatnim dymku serii, wcześniej puste miejsce.
+        if (showAvatar && m.incoming) {
+            val avatarSize = style.dp(28f).coerceIn(20.dp, 44.dp)
+            Box(Modifier.padding(end = 6.dp, bottom = style.dp(20f).coerceAtMost(28.dp)).size(avatarSize)) {
+                if (!groupedWithNewer) {
+                    val c = remember(m.address) { Contacts.lookup(context, m.address) }
+                    Avatar(c?.name ?: m.address, c?.photo, size = avatarSize, colored = vm.settings.colorAvatars)
                 }
             }
         }
-        if (expanded || showStatus || !groupedWithNewer) {
-            StatusLine(vm, m, expanded || showStatus)
+        Column(horizontalAlignment = if (out) Alignment.End else Alignment.Start) {
+            if (showSender) {
+                Text(
+                    Contacts.displayName(context, m.address),
+                    color = Palette.TextDim,
+                    fontSize = style.smallSp(12f),
+                    modifier = Modifier.padding(start = style.dp(12f), bottom = 2.dp),
+                )
+            }
+            Column(
+                Modifier
+                    .widthIn(max = maxWidth)
+                    .clip(shape)
+                    .background(if (onlyEmoji) Color.Transparent else colors.background)
+                    .then(if (colors.outline != null && !onlyEmoji) Modifier.border(1.dp, colors.outline, shape) else Modifier)
+                    .combinedClickable(
+                        onClick = { if (failed) vm.retry(m) else expanded = !expanded },
+                        onLongClick = {
+                            if (vm.settings.haptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            onLongClick()
+                        },
+                    ),
+            ) {
+                if (m.pendingUrl != null) {
+                    PendingMms(vm, m)
+                }
+                m.media.forEach { part -> MediaPart(vm, m, part, style, maxWidth) }
+                if (m.subject != null) {
+                    Text(
+                        m.subject,
+                        color = colors.content,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = style.sp(15f),
+                        modifier = Modifier.padding(start = style.dp(14f), end = style.dp(14f), top = style.dp(9f)),
+                    )
+                }
+                if (m.body.isNotEmpty()) {
+                    Text(
+                        linkify(m.body, highlight, colors.lightBackground, code, copied, copyCode),
+                        color = colors.content,
+                        fontSize = if (onlyEmoji) style.sp(40f) else style.sp(16f),
+                        lineHeight = if (onlyEmoji) style.sp(46f) else style.sp(21f),
+                        modifier = Modifier.padding(horizontal = style.dp(14f), vertical = style.dp(9f)),
+                    )
+                }
+            }
+            // Kod jednorazowy: dyskretny przycisk pod dymkiem, potwierdzenie bez wyskakującego komunikatu.
+            if (code != null) CodeChip(code, copied, style, onClick = copyCode)
+            val showTime = when (style.timeMode) {
+                TimeMode.EVERY -> true
+                TimeMode.GROUP -> !groupedWithNewer
+                TimeMode.TAP -> false
+            }
+            if (expanded || showStatus || showTime || m.box == MsgBox.OUTBOX) {
+                StatusLine(vm, m, expanded || showStatus, style)
+            }
+        }
+    }
+}
+
+/** Kod w monospace pogrupowany po 3–4 znaki; dotknięcie kopiuje i na chwilę pokazuje „Skopiowano”. */
+@Composable
+private fun CodeChip(code: String, copied: Boolean, style: MessageStyle, onClick: () -> Unit) {
+    val chipShape = RoundedCornerShape(style.dp(12f).coerceIn(8.dp, 16.dp))
+    val bg by animateColorAsState(if (copied) Palette.Ok.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.04f), label = "codeBg")
+    val line by animateColorAsState(if (copied) Palette.Ok.copy(alpha = 0.55f) else Palette.Hairline, label = "codeLine")
+    Row(
+        Modifier
+            .padding(top = style.dp(5f))
+            .clip(chipShape)
+            .background(bg)
+            .border(1.dp, line, chipShape)
+            .clickable(onClickLabel = "Kopiuj kod", onClick = onClick)
+            .padding(start = style.dp(9f), end = style.dp(11f), top = style.dp(5f), bottom = style.dp(5f)),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AnimatedContent(copied, transitionSpec = { (fadeIn() + scaleIn(initialScale = 0.6f)) togetherWith fadeOut() }, label = "codeIcon") { done ->
+            Icon(
+                if (done) Icons.Rounded.Check else Icons.Rounded.ContentCopy,
+                null,
+                tint = if (done) Palette.Ok else Palette.TextDim,
+                modifier = Modifier.size(style.dp(14f).coerceIn(12.dp, 22.dp)),
+            )
+        }
+        Spacer(Modifier.width(style.dp(7f)))
+        Text(
+            groupCode(code),
+            color = Color.White,
+            fontFamily = FontFamily.Monospace,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = style.sp(14f),
+            letterSpacing = 1.sp,
+        )
+        Spacer(Modifier.width(style.dp(8f)))
+        Text(
+            if (copied) "Skopiowano" else "Kopiuj",
+            color = if (copied) Palette.Ok else Palette.TextFaint,
+            fontSize = style.smallSp(11f),
+            fontWeight = FontWeight.Medium,
+        )
+    }
+}
+
+/** „482913” → „482 913”, „12345678” → „1234 5678” – łatwiej przepisać z ekranu. */
+private fun groupCode(code: String): String = when (code.length) {
+    6 -> code.substring(0, 3) + " " + code.substring(3)
+    8 -> code.substring(0, 4) + " " + code.substring(4)
+    else -> code
+}
+
+/** Próbka rozmowy do podglądu w ustawieniach – te same kształty, kolory i skala co w rozmowie. */
+@Composable
+fun MessageStylePreview(style: MessageStyle, modifier: Modifier = Modifier) {
+    BoxWithConstraints(modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Palette.Ink).padding(10.dp)) {
+        val max = (maxWidth * style.width.fraction).coerceAtLeast(140.dp)
+        Column(Modifier.fillMaxWidth()) {
+            PreviewBubble(style, max, "Cześć! Wpadniesz dziś wieczorem?", out = false, older = false, newer = true)
+            PreviewBubble(style, max, "Będzie też Ola.", out = false, older = true, newer = false)
+            PreviewBubble(style, max, "Jasne, będę koło 19 🙂", out = true, older = false, newer = false)
+            PreviewBubble(style, max, "Twój kod logowania: 482913", out = false, older = false, newer = false)
+            CodeChip("482913", copied = false, style = style, onClick = {})
         }
     }
 }
 
 @Composable
-private fun StatusLine(vm: AppViewModel, m: Message, full: Boolean) {
+private fun PreviewBubble(style: MessageStyle, max: Dp, text: String, out: Boolean, older: Boolean, newer: Boolean) {
+    val c = style.colors(out)
+    val sh = style.shape(out, older, newer)
+    Box(
+        Modifier.fillMaxWidth().padding(top = if (older) style.dp(style.spacing.joined) else style.dp(style.spacing.gap)),
+        contentAlignment = if (out) Alignment.CenterEnd else Alignment.CenterStart,
+    ) {
+        Text(
+            text,
+            color = c.content,
+            fontSize = style.sp(16f),
+            lineHeight = style.sp(21f),
+            modifier = Modifier
+                .widthIn(max = max)
+                .clip(sh)
+                .background(c.background)
+                .then(if (c.outline != null) Modifier.border(1.dp, c.outline, sh) else Modifier)
+                .padding(horizontal = style.dp(14f), vertical = style.dp(9f)),
+        )
+    }
+}
+
+@Composable
+private fun StatusLine(vm: AppViewModel, m: Message, full: Boolean, style: MessageStyle) {
     val sim = if (vm.settings.showSimBadge && vm.sims.size > 1) vm.sims.firstOrNull { it.subId == m.subId }?.let { "SIM ${it.slot + 1}" } else null
     val (text, color) = when {
         m.incoming -> formatTime(m.date) to Palette.TextFaint
@@ -474,9 +659,9 @@ private fun StatusLine(vm: AppViewModel, m: Message, full: Boolean) {
         m.delivery == Delivery.PENDING -> "Wysłano · ${formatTime(m.date)}" to Palette.TextFaint
         else -> "Wysłano · ${formatTime(m.date)}" to Palette.TextFaint
     }
-    Row(Modifier.padding(horizontal = 8.dp, vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.padding(horizontal = style.dp(8f).coerceAtMost(12.dp), vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
         if (m.box == MsgBox.FAILED) Icon(Icons.Rounded.Error, null, tint = Palette.Record, modifier = Modifier.size(13.dp).padding(end = 2.dp))
-        Text(listOfNotNull(text, sim, if (m.isMms && full) "MMS" else null).joinToString(" · "), color = color, fontSize = 11.sp)
+        Text(listOfNotNull(text, sim, if (m.isMms && full) "MMS" else null).joinToString(" · "), color = color, fontSize = style.smallSp(11f))
     }
 }
 
@@ -504,7 +689,7 @@ private fun PendingMms(vm: AppViewModel, m: Message) {
 }
 
 @Composable
-private fun MediaPart(vm: AppViewModel, m: Message, part: MmsPart) {
+private fun MediaPart(vm: AppViewModel, m: Message, part: MmsPart, style: MessageStyle, maxWidth: Dp) {
     val context = LocalContext.current
     when {
         part.isImage || part.isVideo -> {
@@ -512,15 +697,15 @@ private fun MediaPart(vm: AppViewModel, m: Message, part: MmsPart) {
             Box(
                 Modifier
                     .padding(3.dp)
-                    .widthIn(min = 120.dp, max = 294.dp)
-                    .heightIn(min = 80.dp, max = 360.dp)
-                    .clip(RoundedCornerShape(17.dp))
+                    .widthIn(min = 120.dp, max = maxWidth - 6.dp)
+                    .heightIn(min = 80.dp, max = style.dp(360f).coerceIn(200.dp, 640.dp))
+                    .clip(RoundedCornerShape((style.dp(style.shape.radius) - 3.dp).coerceAtLeast(3.dp)))
                     .background(Palette.PanelHigher)
                     .clickable { vm.push(Screen.Media(part.uri, part.contentType, part.name)) },
                 contentAlignment = Alignment.Center,
             ) {
                 if (bmp != null) {
-                    Image(bmp.asImageBitmap(), part.name, contentScale = ContentScale.Fit, modifier = Modifier.widthIn(max = 294.dp))
+                    Image(bmp.asImageBitmap(), part.name, contentScale = ContentScale.Fit, modifier = Modifier.widthIn(max = maxWidth - 6.dp))
                 } else {
                     CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(24.dp))
                 }
@@ -555,7 +740,7 @@ private fun MediaPart(vm: AppViewModel, m: Message, part: MmsPart) {
                     tint = if (out) Palette.Ink else Color.White,
                     modifier = Modifier.size(28.dp),
                 )
-                Column(Modifier.padding(start = 10.dp).widthIn(max = 200.dp)) {
+                Column(Modifier.padding(start = 10.dp).widthIn(max = (maxWidth - 70.dp).coerceAtLeast(100.dp))) {
                     Text(
                         when {
                             part.isAudio -> "Nagranie"
@@ -574,9 +759,19 @@ private fun MediaPart(vm: AppViewModel, m: Message, part: MmsPart) {
 }
 
 /** Linki, adresy e-mail i numery telefonów jako klikalne odnośniki; wyróżnienie szukanej frazy. */
-private fun linkify(text: String, highlight: String?, dark: Boolean): AnnotatedString {
+private fun linkify(
+    text: String,
+    highlight: String?,
+    dark: Boolean,
+    code: String? = null,
+    copied: Boolean = false,
+    onCode: () -> Unit = {},
+): AnnotatedString {
     data class Span(val start: Int, val end: Int, val url: String)
     val spans = ArrayList<Span>()
+    // Kod w treści: monospace na delikatnym tle, dotknięcie kopiuje. Linki nie mogą na niego nachodzić.
+    val codeRange = code?.let { findCodeRange(text, it) }
+    if (codeRange != null) spans += Span(codeRange.first, codeRange.last + 1, "")
     fun collect(regex: java.util.regex.Pattern, toUrl: (String) -> String) {
         val m = regex.matcher(text)
         while (m.find()) {
@@ -587,9 +782,20 @@ private fun linkify(text: String, highlight: String?, dark: Boolean): AnnotatedS
     collect(Patterns.WEB_URL) { if (it.startsWith("http", ignoreCase = true)) it else "https://$it" }
     collect(Patterns.PHONE) { "tel:" + it.filter { c -> c.isDigit() || c == '+' } }
     spans.removeAll { it.url.startsWith("tel:") && it.url.length < 11 }
+    spans.removeAll { it.url.isEmpty() }
     spans.sortBy { it.start }
     val linkColor = if (dark) Palette.Ink else Color.White
     val styles = TextLinkStyles(SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline))
+    val codeStyle = SpanStyle(
+        fontFamily = FontFamily.Monospace,
+        fontWeight = FontWeight.Bold,
+        letterSpacing = 0.5.sp,
+        background = when {
+            copied -> Palette.Ok.copy(alpha = 0.28f)
+            dark -> Color(0x14000000)
+            else -> Color.White.copy(alpha = 0.10f)
+        },
+    )
     return buildAnnotatedString {
         var pos = 0
         for (sp in spans) {
@@ -598,6 +804,10 @@ private fun linkify(text: String, highlight: String?, dark: Boolean): AnnotatedS
             pos = sp.end
         }
         append(text.substring(pos))
+        if (codeRange != null) {
+            addStyle(codeStyle, codeRange.first, codeRange.last + 1)
+            addLink(LinkAnnotation.Clickable("code", linkInteractionListener = { onCode() }), codeRange.first, codeRange.last + 1)
+        }
         if (!highlight.isNullOrBlank()) {
             var i = text.indexOf(highlight, 0, ignoreCase = true)
             while (i >= 0) {
@@ -606,6 +816,17 @@ private fun linkify(text: String, highlight: String?, dark: Boolean): AnnotatedS
             }
         }
     }
+}
+
+/** Miejsce kodu w treści – także zapisanego ze spacją lub myślnikiem („482 913”, „482-913”). */
+private fun findCodeRange(text: String, code: String): IntRange? {
+    val i = text.indexOf(code)
+    if (i >= 0) return i until i + code.length
+    if (code.length == 6 && code.all { it.isDigit() }) {
+        val r = Regex(Regex.escape(code.substring(0, 3)) + "[- ]" + Regex.escape(code.substring(3))).find(text)
+        if (r != null) return r.range
+    }
+    return null
 }
 
 @Composable

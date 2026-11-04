@@ -34,6 +34,15 @@ import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.automirrored.rounded.ShortText
 import androidx.compose.material.icons.automirrored.rounded.TextSnippet
 import androidx.compose.material.icons.rounded.AccessTime
+import androidx.compose.material.icons.rounded.AccountCircle
+import androidx.compose.material.icons.rounded.AspectRatio
+import androidx.compose.material.icons.rounded.CalendarToday
+import androidx.compose.material.icons.rounded.ColorLens
+import androidx.compose.material.icons.rounded.EmojiEmotions
+import androidx.compose.material.icons.rounded.FormatLineSpacing
+import androidx.compose.material.icons.rounded.RoundedCorner
+import androidx.compose.material.icons.rounded.TouchApp
+import androidx.compose.material.icons.rounded.ZoomIn
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AdminPanelSettings
 import androidx.compose.material.icons.rounded.BarChart
@@ -73,6 +82,8 @@ import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -91,6 +102,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.blacksingularities.opensms.data.Backup
+import com.blacksingularities.opensms.data.BubbleShape
+import com.blacksingularities.opensms.data.BubbleSpacing
+import com.blacksingularities.opensms.data.BubbleTint
+import com.blacksingularities.opensms.data.BubbleWidth
+import com.blacksingularities.opensms.data.TimeMode
 import com.blacksingularities.opensms.data.MessageStore
 import com.blacksingularities.opensms.data.MmsLimit
 import com.blacksingularities.opensms.data.SwipeAction
@@ -108,6 +124,7 @@ import com.blacksingularities.opensms.ui.components.EmptyState
 import com.blacksingularities.opensms.ui.components.Group
 import com.blacksingularities.opensms.ui.components.InfoRow
 import com.blacksingularities.opensms.ui.components.PillButton
+import com.blacksingularities.opensms.ui.components.RowIcon
 import com.blacksingularities.opensms.ui.components.RoundIcon
 import com.blacksingularities.opensms.ui.components.SwitchRow
 import com.blacksingularities.opensms.ui.components.VSpace
@@ -120,6 +137,7 @@ import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.roundToInt
 
 @Composable
 fun SettingsScreen(vm: AppViewModel, page: SettingsPage, onRequestPermissions: () -> Unit) {
@@ -157,6 +175,54 @@ fun SettingsScreen(vm: AppViewModel, page: SettingsPage, onRequestPermissions: (
                 VSpace(32.dp)
             }
         }
+    }
+}
+
+private fun swipeShort(a: SwipeAction) = when (a) {
+    SwipeAction.NONE -> "Brak"
+    SwipeAction.ARCHIVE -> "Archiw."
+    SwipeAction.READ -> "Czytane"
+    SwipeAction.PIN -> "Przypnij"
+    SwipeAction.DELETE -> "Usuń"
+}
+
+/** Wygląd dymków w rozmowie – z podglądem, który od razu pokazuje każdą zmianę. */
+@Composable
+private fun ConversationLookGroup(vm: AppViewModel) {
+    val s = vm.settings
+    Group("Wygląd rozmowy") {
+        MessageStylePreview(MessageStyle.from(s), Modifier.padding(horizontal = 10.dp, vertical = 8.dp))
+        Column(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                RowIcon(Icons.Rounded.ZoomIn)
+                Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
+                    Text("Powiększenie dymków", fontSize = 14.sp, color = Color.White)
+                    Text(
+                        "${(s.bubbleZoom * 100).roundToInt()}% · w rozmowie zmienisz je też dwoma palcami",
+                        fontSize = 11.sp,
+                        lineHeight = 14.sp,
+                        color = Palette.TextDim,
+                    )
+                }
+                if (s.bubbleZoom != 1f) PillButton("100%", primary = false, onClick = { s.bubbleZoom = 1f })
+            }
+            Slider(
+                value = s.bubbleZoom,
+                onValueChange = { s.bubbleZoom = (it * 20).roundToInt() / 20f },
+                valueRange = MIN_ZOOM..MAX_ZOOM,
+                modifier = Modifier.padding(start = 44.dp),
+                colors = SliderDefaults.colors(thumbColor = Color.White, activeTrackColor = Color.White, inactiveTrackColor = Palette.PanelHigher),
+            )
+        }
+        SwitchRow(Icons.Rounded.TouchApp, "Powiększanie dwoma palcami", "Rozsuń palce, żeby powiększyć dymki, zsuń, żeby pomniejszyć", s.pinchZoom) { s.pinchZoom = it }
+        CompactChoice(Icons.Rounded.ColorLens, "Kolor moich wiadomości", BubbleTint.entries, s.bubbleTint, { it.label }) { s.bubbleTint = it }
+        CompactChoice(Icons.Rounded.RoundedCorner, "Kształt dymków", BubbleShape.entries, s.bubbleShape, { it.label }) { s.bubbleShape = it }
+        CompactChoice(Icons.Rounded.AspectRatio, "Szerokość dymków", BubbleWidth.entries, s.bubbleWidth, { it.label }) { s.bubbleWidth = it }
+        CompactChoice(Icons.Rounded.FormatLineSpacing, "Odstępy", BubbleSpacing.entries, s.bubbleSpacing, { it.label }) { s.bubbleSpacing = it }
+        CompactChoice(Icons.Rounded.AccessTime, "Godzina wiadomości", TimeMode.entries, s.timeMode, { it.label }) { s.timeMode = it }
+        SwitchRow(Icons.Rounded.EmojiEmotions, "Duże emoji", "Wiadomość z samych emoji bez dymka, w dużym rozmiarze", s.bigEmoji) { s.bigEmoji = it }
+        SwitchRow(Icons.Rounded.CalendarToday, "Nagłówki dni", "„Dzisiaj”, „Wczoraj” i daty między wiadomościami", s.dayHeaders) { s.dayHeaders = it }
+        SwitchRow(Icons.Rounded.AccountCircle, "Awatary w grupach", "Zdjęcie nadawcy przy wiadomościach w rozmowach grupowych", s.senderAvatars) { s.senderAvatars = it }
     }
 }
 
@@ -205,9 +271,11 @@ private fun ColumnScope.MainSettings(vm: AppViewModel, onRequestPermissions: () 
         SwitchRow(Icons.Rounded.Vibration, "Wibracja przycisków", "Przy przytrzymaniu i przesuwaniu rozmów", s.haptics) { s.haptics = it }
     }
 
+    ConversationLookGroup(vm)
+
     Group("Gesty na liście") {
-        CompactChoice(Icons.Rounded.SwipeRight, "Przesunięcie w prawo", SwipeAction.entries, s.swipeRight, { it.label }) { s.swipeRight = it }
-        CompactChoice(Icons.Rounded.SwipeLeft, "Przesunięcie w lewo", SwipeAction.entries, s.swipeLeft, { it.label }) { s.swipeLeft = it }
+        CompactChoice(Icons.Rounded.SwipeRight, "Przesunięcie w prawo", SwipeAction.entries, s.swipeRight, { it.label }, short = { swipeShort(it) }) { s.swipeRight = it }
+        CompactChoice(Icons.Rounded.SwipeLeft, "Przesunięcie w lewo", SwipeAction.entries, s.swipeLeft, { it.label }, short = { swipeShort(it) }) { s.swipeLeft = it }
     }
 
     Group("Wysyłanie") {
