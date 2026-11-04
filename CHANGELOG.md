@@ -1,5 +1,15 @@
 # Zmiany
 
+## 1.2.0
+
+- **Przełączanie kart gestem**: przesunięcie palcem w bok po pustym miejscu listy (pod rozmowami albo na pustej liście) zmienia kartę – Wszystkie, Nieprzeczytane, Archiwum itd.
+- **Nowa wyszukiwarka**: wyrasta z lupy i płynnie rozciąga się w lewo, zakrywając karty; lista rozmów znika dopiero po wpisaniu tekstu.
+- **Powiększanie dwoma palcami także na liście rozmów**, zapamiętywane osobno od rozmowy.
+- **Kody jednorazowe**: zamiast przycisku pod dymkiem – mały, dyskretny znaczek kopiowania w prawym górnym rogu kodu; podgląd w ustawieniach wygląda tak samo.
+- Komunikat „Nie można odpowiedzieć” na całą szerokość, z tłem zanikającym ku górze i wyśrodkowanym nagłówkiem.
+- Liczniki na zakładkach nie są już przycinane przez krawędź przycisku.
+- Uporządkowany wygląd ustawień: równe wysokości i odstępy wierszy, wyrównane nagłówki sekcji, czytelniejsze opisy.
+
 ## 1.1.0
 
 - **Powiększanie dwoma palcami** w rozmowie: dymki, tekst, odstępy i zdjęcia płynnie rosną i maleją; plakietka pokazuje procent, dotknięcie wraca do 100%.

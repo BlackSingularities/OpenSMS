@@ -2,6 +2,12 @@ package com.blacksingularities.opensms.ui
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.lerp
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -61,6 +67,8 @@ import androidx.compose.material.icons.rounded.Unarchive
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -85,6 +93,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -98,6 +107,7 @@ import com.blacksingularities.opensms.ui.components.EmptyState
 import com.blacksingularities.opensms.ui.components.RoundIcon
 import com.blacksingularities.opensms.ui.components.TabChip
 import com.blacksingularities.opensms.ui.theme.Palette
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -110,20 +120,41 @@ fun ConversationsScreen(vm: AppViewModel) {
     var confirmEmptyTrash by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
     val visible = vm.visibleConversations()
+    var liveZoom by remember { mutableFloatStateOf(vm.settings.listZoom) }
+    var zooming by remember { mutableStateOf(false) }
+    var showZoom by remember { mutableStateOf(false) }
+    LaunchedEffect(zooming, liveZoom) {
+        if (zooming) showZoom = true else { delay(900); showZoom = false }
+    }
 
     Box(Modifier.fillMaxSize().background(Palette.Ink).windowInsetsPadding(WindowInsets.safeDrawing)) {
         Column(Modifier.fillMaxSize()) {
             when {
                 vm.selection.isNotEmpty() -> SelectionBar(vm, onDelete = { confirmDelete = vm.selection }, onBlock = { confirmBlock = vm.selection })
-                vm.searching -> SearchBar(vm)
                 else -> Header(vm, onMenu = { menu = true })
             }
-            if (vm.searching) {
+            // Lista znika dopiero, gdy coś wpiszemy.
+            if (vm.searching && vm.query.isNotBlank()) {
                 SearchResults(vm)
             } else {
+                val baseDensity = LocalDensity.current
+                Box(
+                    Modifier.fillMaxSize().pinchToZoom(
+                        enabled = vm.settings.pinchZoom,
+                        onStart = { zooming = true },
+                        onZoom = { z -> liveZoom = (liveZoom * z).coerceIn(MIN_ZOOM, MAX_ZOOM) },
+                        onEnd = {
+                            zooming = false
+                            if (abs(liveZoom - 1f) < 0.04f) liveZoom = 1f
+                            vm.settings.listZoom = liveZoom
+                        },
+                    ),
+                ) {
+                // Powiększenie listy dwoma palcami skaluje cały interfejs wierszy.
+                CompositionLocalProvider(LocalDensity provides Density(baseDensity.density * liveZoom, baseDensity.fontScale)) {
                 LazyColumn(
                     state = listState,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().filterSwipe(vm, with(baseDensity) { 72.dp.toPx() }),
                     contentPadding = PaddingValues(bottom = 110.dp),
                 ) {
                     item(key = "banner") { UpdateBanner(vm, Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) }
@@ -151,6 +182,14 @@ fun ConversationsScreen(vm: AppViewModel) {
                             )
                         }
                     }
+                }
+                }
+                ZoomIndicator(
+                    visible = showZoom,
+                    zoom = liveZoom,
+                    modifier = Modifier.align(Alignment.TopCenter).padding(top = 10.dp),
+                    onReset = { liveZoom = 1f; vm.settings.listZoom = 1f },
+                )
                 }
             }
         }
@@ -231,12 +270,101 @@ fun ConversationsScreen(vm: AppViewModel) {
 @Composable
 private fun Header(vm: AppViewModel, onMenu: () -> Unit) {
     // Bez tytułu: karty filtrów stoją po lewej, naprzeciwko wyszukiwania i menu.
+    // Wyszukiwarka wyrasta z lupy i płynnie rozciąga się w lewo, zakrywając karty.
+    val p by animateFloatAsState(if (vm.searching) 1f else 0f, tween(280, easing = FastOutSlowInEasing), label = "searchGrow")
     Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Filters(vm, Modifier.weight(1f))
-        Spacer(Modifier.width(8.dp))
-        RoundIcon(Icons.Rounded.Search, "Szukaj", onClick = { vm.openSearch() })
+        BoxWithConstraints(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
+            if (p < 1f) {
+                Filters(vm, Modifier.fillMaxWidth().padding(end = 52.dp).graphicsLayer { alpha = 1f - p })
+            }
+            SearchPill(vm, p, Modifier.width(lerp(44.dp, maxWidth, p)))
+        }
         Spacer(Modifier.width(8.dp))
         RoundIcon(Icons.Rounded.MoreVert, "Menu", badge = if (vm.updatePending) "1" else null, onClick = onMenu)
+    }
+}
+
+@Composable
+private fun SearchPill(vm: AppViewModel, p: Float, modifier: Modifier) {
+    val focus = remember { FocusRequester() }
+    LaunchedEffect(vm.searching) { if (vm.searching) runCatching { focus.requestFocus() } }
+    Row(
+        modifier
+            .height(44.dp)
+            .clip(RoundedCornerShape(50))
+            .background(Palette.PanelHigh)
+            .then(if (vm.searching) Modifier else Modifier.clickable { vm.openSearch() }),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(
+            Modifier.size(44.dp).then(if (vm.searching) Modifier.clickable { vm.closeSearch() } else Modifier),
+            contentAlignment = Alignment.Center,
+        ) {
+            Icon(
+                if (vm.searching) Icons.AutoMirrored.Rounded.ArrowBack else Icons.Rounded.Search,
+                if (vm.searching) "Zamknij wyszukiwanie" else "Szukaj",
+                tint = Color.White,
+                modifier = Modifier.size(22.dp),
+            )
+        }
+        if (p > 0f) {
+            Box(Modifier.weight(1f).graphicsLayer { alpha = p }) {
+                if (vm.query.isEmpty()) Text("Szukaj w wiadomościach i kontaktach", color = Palette.TextFaint, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                BasicTextField(
+                    value = vm.query,
+                    onValueChange = { vm.updateQuery(it) },
+                    singleLine = true,
+                    enabled = vm.searching,
+                    textStyle = TextStyle(color = Color.White, fontSize = 15.sp),
+                    cursorBrush = SolidColor(Color.White),
+                    modifier = Modifier.fillMaxWidth().focusRequester(focus),
+                )
+            }
+            if (vm.query.isNotEmpty()) {
+                Box(Modifier.size(44.dp).clickable { vm.updateQuery("") }, contentAlignment = Alignment.Center) {
+                    Icon(Icons.Rounded.Close, "Wyczyść", tint = Color.White, modifier = Modifier.size(20.dp))
+                }
+            } else {
+                Spacer(Modifier.width(16.dp))
+            }
+        }
+    }
+}
+
+/** Zakładki w kolejności, w jakiej widać je w pasku filtrów. */
+private fun visibleFilters(vm: AppViewModel): List<Filter> {
+    val live = vm.conversations.filter { !it.trashed }
+    return buildList {
+        add(Filter.ALL)
+        add(Filter.UNREAD)
+        if (live.any { it.pinned } || vm.filter == Filter.PINNED) add(Filter.PINNED)
+        if (live.any { it.archived } || vm.filter == Filter.ARCHIVED) add(Filter.ARCHIVED)
+        if (live.size < vm.conversations.size || vm.filter == Filter.TRASH) add(Filter.TRASH)
+    }
+}
+
+/**
+ * Przesunięcie palcem w lewo/prawo po pustym miejscu listy zmienia zakładkę.
+ * Wiersze rozmów mają własny gest (SwipeRow) i konsumują ruch, więc tu dociera
+ * tylko przeciągnięcie zaczęte poza nimi – pod wiadomościami albo na pustej liście.
+ */
+private fun Modifier.filterSwipe(vm: AppViewModel, thresholdPx: Float): Modifier = pointerInput(Unit) {
+    var total = 0f
+    detectHorizontalDragGestures(
+        onDragStart = { total = 0f },
+        onDragCancel = { total = 0f },
+        onDragEnd = {
+            if (vm.selection.isEmpty() && abs(total) > thresholdPx) {
+                val tabs = visibleFilters(vm)
+                val i = tabs.indexOf(vm.filter).coerceAtLeast(0)
+                val next = if (total < 0) i + 1 else i - 1
+                tabs.getOrNull(next)?.let { vm.filter = it }
+            }
+            total = 0f
+        },
+    ) { change, dx ->
+        total += dx
+        change.consume()
     }
 }
 
@@ -248,7 +376,7 @@ private fun Filters(vm: AppViewModel, modifier: Modifier = Modifier) {
     val archived = live.count { it.archived }
     val trashed = vm.conversations.size - live.size
     Row(
-        modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 4.dp),
+        modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 4.dp, vertical = 5.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -281,33 +409,6 @@ private fun SelectionBar(vm: AppViewModel, onDelete: () -> Unit, onBlock: () -> 
         RoundIcon(Icons.Rounded.Delete, "Usuń", flat = true, tint = Palette.Record, onClick = {
             if (vm.settings.confirmDelete) onDelete() else vm.trashThreads(ids)
         })
-    }
-}
-
-@Composable
-private fun SearchBar(vm: AppViewModel) {
-    val focus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
-    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        RoundIcon(Icons.AutoMirrored.Rounded.ArrowBack, "Zamknij wyszukiwanie", onClick = { vm.closeSearch() })
-        Spacer(Modifier.width(10.dp))
-        Box(
-            Modifier.weight(1f).clip(RoundedCornerShape(50)).background(Palette.PanelHigh).padding(horizontal = 18.dp, vertical = 12.dp),
-        ) {
-            if (vm.query.isEmpty()) Text("Szukaj w wiadomościach i kontaktach", color = Palette.TextFaint, fontSize = 15.sp)
-            BasicTextField(
-                value = vm.query,
-                onValueChange = { vm.updateQuery(it) },
-                singleLine = true,
-                textStyle = TextStyle(color = Color.White, fontSize = 15.sp),
-                cursorBrush = SolidColor(Color.White),
-                modifier = Modifier.fillMaxWidth().focusRequester(focus),
-            )
-        }
-        if (vm.query.isNotEmpty()) {
-            Spacer(Modifier.width(8.dp))
-            RoundIcon(Icons.Rounded.Close, "Wyczyść", onClick = { vm.updateQuery("") })
-        }
     }
 }
 
@@ -440,8 +541,9 @@ private fun SwipeRow(vm: AppViewModel, item: ConversationItem, content: @Composa
                     ) { change, dx ->
                         val next = offset.value + dx
                         val allowed = (next > 0 && right != SwipeAction.NONE) || (next < 0 && left != SwipeAction.NONE)
-                        if (!allowed && next != 0f) return@detectHorizontalDragGestures
+                        // Konsumujemy zawsze – poziomy ruch po wierszu nie może przełączać zakładek.
                         change.consume()
+                        if (!allowed && next != 0f) return@detectHorizontalDragGestures
                         scope.launch { offset.snapTo(next) }
                         val nowArmed = abs(next) >= threshold
                         if (nowArmed != armed) {

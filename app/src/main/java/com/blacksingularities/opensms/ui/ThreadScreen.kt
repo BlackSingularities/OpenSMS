@@ -1,5 +1,13 @@
 package com.blacksingularities.opensms.ui
 
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.foundation.layout.offset
 import android.content.Intent
 import android.net.Uri
 import android.provider.ContactsContract
@@ -378,31 +386,45 @@ fun ThreadScreen(vm: AppViewModel, s: Screen.Thread) {
 /** Nadawca alfanumeryczny – odpowiedź nie ma dokąd trafić, więc zamiast pola tekstowego jest wyjaśnienie. */
 @Composable
 private fun NoReplyNote(addresses: List<String>) {
-    Row(
+    BottomNotice(
+        Icons.Rounded.Block,
+        "Nie można odpowiedzieć",
+        "${addresses.joinToString(", ")} wysyła wiadomości z nazwy, a nie z numeru. Operator nie przyjmie odpowiedzi.",
+    )
+}
+
+/**
+ * Komunikat w miejscu pola wpisywania: na całą szerokość, bez osobnej karty –
+ * tło wyrasta z przezroczystości u góry, nagłówek i opis wyśrodkowane.
+ */
+@Composable
+internal fun BottomNotice(icon: ImageVector, title: String, text: String) {
+    Column(
         Modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 10.dp)
-            .clip(RoundedCornerShape(18.dp))
-            .background(Palette.PanelHigh)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .background(Brush.verticalGradient(0f to Color.Transparent, 0.55f to Palette.PanelHigh.copy(alpha = 0.7f), 1f to Palette.PanelHigh))
+            .padding(start = 24.dp, end = 24.dp, top = 30.dp, bottom = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(Icons.Rounded.Block, null, tint = Palette.TextFaint, modifier = Modifier.size(20.dp))
-        Column(Modifier.padding(start = 12.dp)) {
-            Text("Nie można odpowiedzieć", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
-            Text(
-                "${addresses.joinToString(", ")} wysyła wiadomości z nazwy, a nie z numeru. Operator nie przyjmie odpowiedzi.",
-                color = Palette.TextDim,
-                fontSize = 13.sp,
-                lineHeight = 18.sp,
-            )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, tint = Palette.TextDim, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(title, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
         }
+        Text(
+            text,
+            color = Palette.TextDim,
+            fontSize = 13.sp,
+            lineHeight = 18.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 4.dp),
+        )
     }
 }
 
 /** Plakietka z bieżącym powiększeniem – widoczna w trakcie gestu; dotknięcie wraca do 100%. */
 @Composable
-private fun ZoomIndicator(visible: Boolean, zoom: Float, modifier: Modifier, onReset: () -> Unit) {
+internal fun ZoomIndicator(visible: Boolean, zoom: Float, modifier: Modifier, onReset: () -> Unit) {
     AnimatedVisibility(visible, modifier = modifier, enter = fadeIn() + scaleIn(initialScale = 0.85f), exit = fadeOut() + scaleOut(targetScale = 0.9f)) {
         Row(
             Modifier
@@ -534,17 +556,21 @@ private fun MessageBubble(
                     )
                 }
                 if (m.body.isNotEmpty()) {
-                    Text(
-                        linkify(m.body, highlight, colors.lightBackground, code, copied, copyCode),
+                    CodeAwareText(
+                        text = m.body,
+                        annotated = linkify(m.body, highlight, colors.lightBackground, code, copied, copyCode),
+                        code = code,
+                        copied = copied,
+                        style = style,
+                        dark = colors.lightBackground,
+                        bubble = colors.background,
                         color = colors.content,
                         fontSize = if (onlyEmoji) style.sp(40f) else style.sp(16f),
                         lineHeight = if (onlyEmoji) style.sp(46f) else style.sp(21f),
-                        modifier = Modifier.padding(horizontal = style.dp(14f), vertical = style.dp(9f)),
+                        onCopy = copyCode,
                     )
                 }
             }
-            // Kod jednorazowy: dyskretny przycisk pod dymkiem, potwierdzenie bez wyskakującego komunikatu.
-            if (code != null) CodeChip(code, copied, style, onClick = copyCode)
             val showTime = when (style.timeMode) {
                 TimeMode.EVERY -> true
                 TimeMode.GROUP -> !groupedWithNewer
@@ -557,54 +583,57 @@ private fun MessageBubble(
     }
 }
 
-/** Kod w monospace pogrupowany po 3–4 znaki; dotknięcie kopiuje i na chwilę pokazuje „Skopiowano”. */
+/**
+ * Treść dymka; przy kodzie jednorazowym w prawym górnym rogu samego kodu siedzi mały,
+ * dyskretny znaczek kopiowania (dotknięcie kodu albo znaczka kopiuje, znaczek zmienia się w ✓).
+ */
 @Composable
-private fun CodeChip(code: String, copied: Boolean, style: MessageStyle, onClick: () -> Unit) {
-    val chipShape = RoundedCornerShape(style.dp(12f).coerceIn(8.dp, 16.dp))
-    val bg by animateColorAsState(if (copied) Palette.Ok.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.04f), label = "codeBg")
-    val line by animateColorAsState(if (copied) Palette.Ok.copy(alpha = 0.55f) else Palette.Hairline, label = "codeLine")
-    Row(
-        Modifier
-            .padding(top = style.dp(5f))
-            .clip(chipShape)
-            .background(bg)
-            .border(1.dp, line, chipShape)
-            .clickable(onClickLabel = "Kopiuj kod", onClick = onClick)
-            .padding(start = style.dp(9f), end = style.dp(11f), top = style.dp(5f), bottom = style.dp(5f)),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        AnimatedContent(copied, transitionSpec = { (fadeIn() + scaleIn(initialScale = 0.6f)) togetherWith fadeOut() }, label = "codeIcon") { done ->
-            Icon(
-                if (done) Icons.Rounded.Check else Icons.Rounded.ContentCopy,
-                null,
-                tint = if (done) Palette.Ok else Palette.TextDim,
-                modifier = Modifier.size(style.dp(14f).coerceIn(12.dp, 22.dp)),
-            )
+private fun CodeAwareText(
+    text: String,
+    annotated: AnnotatedString,
+    code: String?,
+    copied: Boolean,
+    style: MessageStyle,
+    dark: Boolean,
+    bubble: Color,
+    color: Color,
+    fontSize: TextUnit,
+    lineHeight: TextUnit,
+    onCopy: () -> Unit,
+) {
+    var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
+    val range = remember(text, code) { code?.let { findCodeRange(text, it) } }
+    Box(Modifier.padding(horizontal = style.dp(14f), vertical = style.dp(9f))) {
+        Text(annotated, color = color, fontSize = fontSize, lineHeight = lineHeight, onTextLayout = { layout = it })
+        val l = layout
+        if (range != null && l != null && range.last < l.layoutInput.text.length) {
+            val d = style.dp(17f).coerceIn(14.dp, 24.dp)
+            val half = with(LocalDensity.current) { (d / 2).roundToPx() }
+            val box = l.getBoundingBox(range.last)
+            val top = l.getLineTop(l.getLineForOffset(range.last))
+            val ring by animateColorAsState(if (copied) Palette.Ok.copy(alpha = 0.6f) else if (dark) Color(0x22000000) else Color.White.copy(alpha = 0.16f), label = "codeRing")
+            val ink = if (copied) Palette.Ok else if (dark) Palette.Ink.copy(alpha = 0.55f) else Color.White.copy(alpha = 0.6f)
+            Box(
+                Modifier
+                    .offset { IntOffset(box.right.roundToInt() - half + half / 3, top.roundToInt() - half - half / 4) }
+                    .size(d)
+                    .clip(CircleShape)
+                    .background(bubble)
+                    .border(1.dp, ring, CircleShape)
+                    .clickable(onClickLabel = "Kopiuj kod", onClick = onCopy),
+                contentAlignment = Alignment.Center,
+            ) {
+                AnimatedContent(copied, transitionSpec = { (fadeIn() + scaleIn(initialScale = 0.6f)) togetherWith fadeOut() }, label = "codeIcon") { done ->
+                    Icon(
+                        if (done) Icons.Rounded.Check else Icons.Rounded.ContentCopy,
+                        if (done) "Skopiowano" else "Kopiuj kod",
+                        tint = ink,
+                        modifier = Modifier.size(d * 0.52f),
+                    )
+                }
+            }
         }
-        Spacer(Modifier.width(style.dp(7f)))
-        Text(
-            groupCode(code),
-            color = Color.White,
-            fontFamily = FontFamily.Monospace,
-            fontWeight = FontWeight.SemiBold,
-            fontSize = style.sp(14f),
-            letterSpacing = 1.sp,
-        )
-        Spacer(Modifier.width(style.dp(8f)))
-        Text(
-            if (copied) "Skopiowano" else "Kopiuj",
-            color = if (copied) Palette.Ok else Palette.TextFaint,
-            fontSize = style.smallSp(11f),
-            fontWeight = FontWeight.Medium,
-        )
     }
-}
-
-/** „482913” → „482 913”, „12345678” → „1234 5678” – łatwiej przepisać z ekranu. */
-private fun groupCode(code: String): String = when (code.length) {
-    6 -> code.substring(0, 3) + " " + code.substring(3)
-    8 -> code.substring(0, 4) + " " + code.substring(4)
-    else -> code
 }
 
 /** Próbka rozmowy do podglądu w ustawieniach – te same kształty, kolory i skala co w rozmowie. */
@@ -616,8 +645,40 @@ fun MessageStylePreview(style: MessageStyle, modifier: Modifier = Modifier) {
             PreviewBubble(style, max, "Cześć! Wpadniesz dziś wieczorem?", out = false, older = false, newer = true)
             PreviewBubble(style, max, "Będzie też Ola.", out = false, older = true, newer = false)
             PreviewBubble(style, max, "Jasne, będę koło 19 🙂", out = true, older = false, newer = false)
-            PreviewBubble(style, max, "Twój kod logowania: 482913", out = false, older = false, newer = false)
-            CodeChip("482913", copied = false, style = style, onClick = {})
+            PreviewCodeBubble(style, max)
+        }
+    }
+}
+
+/** Dymek z kodem w podglądzie – ten sam wygląd co w rozmowie, łącznie ze znaczkiem kopiowania. */
+@Composable
+private fun PreviewCodeBubble(style: MessageStyle, max: Dp) {
+    val c = style.colors(false)
+    val sh = style.shape(false, older = false, newer = false)
+    val text = "Twój kod logowania: 482913"
+    var copied by remember { mutableStateOf(false) }
+    LaunchedEffect(copied) { if (copied) { delay(1800); copied = false } }
+    Box(Modifier.fillMaxWidth().padding(top = style.dp(style.spacing.gap)), contentAlignment = Alignment.CenterStart) {
+        Box(
+            Modifier
+                .widthIn(max = max)
+                .clip(sh)
+                .background(c.background)
+                .then(if (c.outline != null) Modifier.border(1.dp, c.outline, sh) else Modifier),
+        ) {
+            CodeAwareText(
+                text = text,
+                annotated = linkify(text, null, c.lightBackground, "482913", copied) { copied = true },
+                code = "482913",
+                copied = copied,
+                style = style,
+                dark = c.lightBackground,
+                bubble = c.background,
+                color = c.content,
+                fontSize = style.sp(16f),
+                lineHeight = style.sp(21f),
+                onCopy = { copied = true },
+            )
         }
     }
 }

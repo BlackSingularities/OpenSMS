@@ -101,6 +101,7 @@ class Settings private constructor(context: Context) {
     // Wygląd rozmowy
     /** Powiększenie dymków zmieniane gestem dwóch palców (0.6–2.0). */
     var bubbleZoom by floatPref("bubbleZoom", 1f)
+    var listZoom by floatPref("listZoom", 1f)
     var pinchZoom by boolPref("pinchZoom", true)
     var bubbleShape by enumPref("bubbleShape", BubbleShape.ROUND)
     var bubbleWidth by enumPref("bubbleWidth", BubbleWidth.NORMAL)

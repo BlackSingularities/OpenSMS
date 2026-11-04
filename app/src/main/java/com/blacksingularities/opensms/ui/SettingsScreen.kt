@@ -1,5 +1,6 @@
 package com.blacksingularities.opensms.ui
 
+import androidx.compose.ui.text.style.TextAlign
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings as AndroidSettings
@@ -152,7 +153,7 @@ fun SettingsScreen(vm: AppViewModel, page: SettingsPage, onRequestPermissions: (
     Column(Modifier.fillMaxSize().background(Palette.Ink).windowInsetsPadding(WindowInsets.safeDrawing).imePadding()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
             RoundIcon(Icons.AutoMirrored.Rounded.ArrowBack, "Wstecz", flat = true, onClick = { vm.back() })
-            Text(title, fontSize = 24.sp, fontWeight = FontWeight.Black, color = Color.White, modifier = Modifier.padding(start = 6.dp))
+            Text(title, fontSize = 22.sp, fontWeight = FontWeight.Black, color = Color.White, modifier = Modifier.padding(start = 6.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
             Column(
@@ -162,7 +163,7 @@ fun SettingsScreen(vm: AppViewModel, page: SettingsPage, onRequestPermissions: (
                     .fillMaxHeight()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 14.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 when (page) {
                     SettingsPage.MAIN -> MainSettings(vm, onRequestPermissions)
@@ -191,16 +192,16 @@ private fun swipeShort(a: SwipeAction) = when (a) {
 private fun ConversationLookGroup(vm: AppViewModel) {
     val s = vm.settings
     Group("Wygląd rozmowy") {
-        MessageStylePreview(MessageStyle.from(s), Modifier.padding(horizontal = 10.dp, vertical = 8.dp))
-        Column(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 4.dp)) {
+        MessageStylePreview(MessageStyle.from(s), Modifier.padding(start = 10.dp, end = 10.dp, top = 4.dp, bottom = 6.dp))
+        Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RowIcon(Icons.Rounded.ZoomIn)
                 Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                    Text("Powiększenie dymków", fontSize = 14.sp, color = Color.White)
+                    Text("Powiększenie dymków", fontSize = 15.sp, color = Color.White)
                     Text(
                         "${(s.bubbleZoom * 100).roundToInt()}% · w rozmowie zmienisz je też dwoma palcami",
-                        fontSize = 11.sp,
-                        lineHeight = 14.sp,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp,
                         color = Palette.TextDim,
                     )
                 }
@@ -210,11 +211,11 @@ private fun ConversationLookGroup(vm: AppViewModel) {
                 value = s.bubbleZoom,
                 onValueChange = { s.bubbleZoom = (it * 20).roundToInt() / 20f },
                 valueRange = MIN_ZOOM..MAX_ZOOM,
-                modifier = Modifier.padding(start = 44.dp),
+                modifier = Modifier.padding(start = 40.dp).height(36.dp),
                 colors = SliderDefaults.colors(thumbColor = Color.White, activeTrackColor = Color.White, inactiveTrackColor = Palette.PanelHigher),
             )
         }
-        SwitchRow(Icons.Rounded.TouchApp, "Powiększanie dwoma palcami", "Rozsuń palce, żeby powiększyć dymki, zsuń, żeby pomniejszyć", s.pinchZoom) { s.pinchZoom = it }
+        SwitchRow(Icons.Rounded.TouchApp, "Powiększanie dwoma palcami", "W rozmowie i na liście rozmów – rozsuń palce, żeby powiększyć, zsuń, żeby pomniejszyć", s.pinchZoom) { s.pinchZoom = it }
         CompactChoice(Icons.Rounded.ColorLens, "Kolor moich wiadomości", BubbleTint.entries, s.bubbleTint, { it.label }) { s.bubbleTint = it }
         CompactChoice(Icons.Rounded.RoundedCorner, "Kształt dymków", BubbleShape.entries, s.bubbleShape, { it.label }) { s.bubbleShape = it }
         CompactChoice(Icons.Rounded.AspectRatio, "Szerokość dymków", BubbleWidth.entries, s.bubbleWidth, { it.label }) { s.bubbleWidth = it }
@@ -276,6 +277,8 @@ private fun ColumnScope.MainSettings(vm: AppViewModel, onRequestPermissions: () 
     Group("Gesty na liście") {
         CompactChoice(Icons.Rounded.SwipeRight, "Przesunięcie w prawo", SwipeAction.entries, s.swipeRight, { it.label }, short = { swipeShort(it) }) { s.swipeRight = it }
         CompactChoice(Icons.Rounded.SwipeLeft, "Przesunięcie w lewo", SwipeAction.entries, s.swipeLeft, { it.label }, short = { swipeShort(it) }) { s.swipeLeft = it }
+        InfoRow(Icons.Rounded.TouchApp, "Przełączanie kart", "Przesuń palcem w bok po pustym miejscu listy")
+        if (s.listZoom != 1f) ActionRow(Icons.Rounded.ZoomIn, "Powiększenie listy: ${(s.listZoom * 100).roundToInt()}%", "Dotknij, aby wrócić do 100%") { s.listZoom = 1f }
     }
 
     Group("Wysyłanie") {
@@ -394,7 +397,8 @@ private fun ColumnScope.MainSettings(vm: AppViewModel, onRequestPermissions: () 
         color = Palette.TextFaint,
         fontSize = 11.sp,
         lineHeight = 15.sp,
-        modifier = Modifier.padding(horizontal = 6.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+        textAlign = TextAlign.Center,
     )
 
     if (signatureDialog) {
