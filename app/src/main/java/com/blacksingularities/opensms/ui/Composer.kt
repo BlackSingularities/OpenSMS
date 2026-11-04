@@ -1,5 +1,7 @@
 package com.blacksingularities.opensms.ui
 
+import com.blacksingularities.opensms.ui.components.SwitchRow
+import androidx.compose.material.icons.rounded.NotificationsActive
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.net.Uri
@@ -290,11 +292,11 @@ fun Composer(vm: AppViewModel, s: Screen.Thread) {
     }
 
     if (scheduleMenu) {
-        ScheduleSheet(onDismiss = { scheduleMenu = false }) { time ->
+        ScheduleSheet(vm, onDismiss = { scheduleMenu = false }) { time, confirm ->
             scheduleMenu = false
             val scheduledText = text
             clearField()
-            vm.schedule(s, scheduledText, time, subId)
+            vm.schedule(s, scheduledText, time, subId, confirm)
         }
     }
 }
@@ -353,8 +355,9 @@ private fun AttachmentChip(a: Attachment, onRemove: () -> Unit) {
 
 /** Szybkie terminy wysyłki i własna data z systemowego kalendarza. */
 @Composable
-fun ScheduleSheet(onDismiss: () -> Unit, onPick: (Long) -> Unit) {
+fun ScheduleSheet(vm: AppViewModel, onDismiss: () -> Unit, onPick: (Long, Boolean) -> Unit) {
     val context = LocalContext.current
+    val settings = vm.settings
     fun at(daysAhead: Int, hour: Int, minute: Int = 0): Long = Calendar.getInstance().apply {
         add(Calendar.DAY_OF_YEAR, daysAhead)
         set(Calendar.HOUR_OF_DAY, hour)
@@ -370,15 +373,22 @@ fun ScheduleSheet(onDismiss: () -> Unit, onPick: (Long) -> Unit) {
         add("Jutro w południe, 12:00" to at(1, 12))
     }
     ActionSheet(title = "Zaplanuj wysłanie", onDismiss = onDismiss) {
+        // Zapamiętany wybór: wysłać samo albo najpierw zapytać w powiadomieniu.
+        SwitchRow(
+            Icons.Rounded.NotificationsActive,
+            "Zapytaj przed wysłaniem",
+            if (settings.scheduleConfirm) "O czasie przyjdzie powiadomienie: Wyślij albo Nie wysyłaj" else "Wiadomość wyjdzie sama o wybranej godzinie",
+            settings.scheduleConfirm,
+        ) { settings.scheduleConfirm = it }
         options.forEach { (label, time) ->
-            ActionRow(Icons.Rounded.Schedule, label, formatFull(time).substringBeforeLast(':')) { onPick(time) }
+            ActionRow(Icons.Rounded.Schedule, label, formatFull(time).substringBeforeLast(':')) { onPick(time, settings.scheduleConfirm) }
         }
         ActionRow(Icons.Rounded.Schedule, "Wybierz datę i godzinę…") {
             val c = Calendar.getInstance()
             DatePickerDialog(context, { _, y, mo, d ->
                 TimePickerDialog(context, { _, h, mi ->
                     val t = Calendar.getInstance().apply { set(y, mo, d, h, mi, 0); set(Calendar.MILLISECOND, 0) }.timeInMillis
-                    if (t <= System.currentTimeMillis()) onDismiss() else onPick(t)
+                    if (t <= System.currentTimeMillis()) onDismiss() else onPick(t, settings.scheduleConfirm)
                 }, c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE), true).show()
             }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).apply {
                 datePicker.minDate = System.currentTimeMillis() - 1000

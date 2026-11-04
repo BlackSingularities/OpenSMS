@@ -1,5 +1,8 @@
 package com.blacksingularities.opensms.notify
 
+import com.blacksingularities.opensms.schedule.ScheduledSendReceiver
+import com.blacksingularities.opensms.schedule.Scheduler
+import com.blacksingularities.opensms.data.ScheduledMessage
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -217,6 +220,40 @@ object Notifier {
         runCatching { NotificationManagerCompat.from(context).notify(SCHEDULED_BASE + threadId.toInt(), n) }
     }
 
+    /** Pytanie o zaplanowaną wiadomość: „Wyślij” albo „Nie wysyłaj”; bez decyzji nic nie wychodzi. */
+    fun showScheduledConfirm(context: Context, m: ScheduledMessage, title: String) {
+        if (!canNotify(context)) return
+        fun act(action: String, code: Int) = PendingIntent.getBroadcast(
+            context,
+            m.id.toInt() + code,
+            Intent(context, ScheduledSendReceiver::class.java).setAction(action).putExtra("id", m.id),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+        val open = context.packageManager.getLaunchIntentForPackage(context.packageName)?.let {
+            PendingIntent.getActivity(context, m.id.toInt() + 3, it, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        }
+        val n = NotificationCompat.Builder(context, CHANNEL_MESSAGES)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle("Wysłać zaplanowaną wiadomość?")
+            .setContentText("Do: $title · ${m.text}")
+            .setStyle(NotificationCompat.BigTextStyle().bigText("Do: $title\n${m.text}"))
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setOngoing(true)
+            .setAutoCancel(false)
+            .apply { open?.let { setContentIntent(it) } }
+            .addAction(0, "Wyślij", act(Scheduler.ACTION_SEND, 1))
+            .addAction(0, "Nie wysyłaj", act(Scheduler.ACTION_SKIP, 2))
+            .build()
+        runCatching { NotificationManagerCompat.from(context).notify(confirmId(m.id), n) }
+    }
+
+    fun cancelScheduledConfirm(context: Context, id: Long) {
+        runCatching { NotificationManagerCompat.from(context).cancel(confirmId(id)) }
+    }
+
+    private fun confirmId(id: Long) = CONFIRM_BASE + (id % 1_000_000).toInt()
+
     private fun action(context: Context, action: String, threadId: Long): PendingIntent =
         PendingIntent.getBroadcast(
             context,
@@ -235,6 +272,7 @@ object Notifier {
 
     private const val FAILED_BASE = 1_000_000
     private const val SCHEDULED_BASE = 2_000_000
+    private const val CONFIRM_BASE = 3_000_000
 }
 
 /** Akcje z powiadomienia: odpowiedź, przeczytane, kopiowanie kodu. */

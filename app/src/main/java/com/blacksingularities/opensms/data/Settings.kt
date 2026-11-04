@@ -77,6 +77,8 @@ data class ScheduledMessage(
     val text: String,
     val time: Long,
     val subId: Int,
+    /** true: o czasie przychodzi powiadomienie z pytaniem, a wysyłka dopiero po „Wyślij”. */
+    val confirm: Boolean = false,
 )
 
 /** Wiadomość zatrzymana przez filtr (do przejrzenia w ustawieniach). */
@@ -102,6 +104,8 @@ class Settings private constructor(context: Context) {
     /** Powiększenie dymków zmieniane gestem dwóch palców (0.6–2.0). */
     var bubbleZoom by floatPref("bubbleZoom", 1f)
     var listZoom by floatPref("listZoom", 1f)
+    /** Ostatni wybór „Zapytaj przed wysłaniem” w arkuszu planowania. */
+    var scheduleConfirm by boolPref("scheduleConfirm", false)
     var pinchZoom by boolPref("pinchZoom", true)
     var bubbleShape by enumPref("bubbleShape", BubbleShape.ROUND)
     var bubbleWidth by enumPref("bubbleWidth", BubbleWidth.NORMAL)
@@ -280,7 +284,7 @@ class Settings private constructor(context: Context) {
         val arr = JSONArray()
         list.forEach { m ->
             arr.put(
-                JSONObject().put("id", m.id).put("text", m.text).put("time", m.time).put("sub", m.subId)
+                JSONObject().put("id", m.id).put("text", m.text).put("time", m.time).put("sub", m.subId).put("confirm", m.confirm)
                     .put("to", JSONArray(m.addresses)),
             )
         }
@@ -304,6 +308,7 @@ class Settings private constructor(context: Context) {
                 o.getString("text"),
                 o.getLong("time"),
                 o.optInt("sub", -1),
+                o.optBoolean("confirm", false),
             )
         }.sortedBy { it.time }
     }.getOrDefault(emptyList())

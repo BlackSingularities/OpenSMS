@@ -544,12 +544,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun schedule(target: Screen.Thread, text: String, time: Long, subId: Int) {
+    fun schedule(target: Screen.Thread, text: String, time: Long, subId: Int, confirm: Boolean = false) {
         if (target.addresses.isEmpty() || text.isBlank()) return
-        Scheduler.add(ctx, ScheduledMessage(System.currentTimeMillis(), target.addresses, text.trim(), time, subId))
+        Scheduler.add(ctx, ScheduledMessage(System.currentTimeMillis(), target.addresses, text.trim(), time, subId, confirm))
         target.threadId?.let { settings.saveDraft(it, "") }
         replace(target.copy(text = "", attachments = emptyList()))
-        toast = "Zaplanowano na " + formatFull(time).substringBeforeLast(':')
+        toast = (if (confirm) "Zapytam o wysłanie " else "Zaplanowano na ") + formatFull(time).substringBeforeLast(':')
     }
 
     fun saveDraft(threadId: Long?, text: String) {

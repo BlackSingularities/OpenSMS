@@ -8,6 +8,7 @@
 - **Kody jednorazowe**: zamiast przycisku pod dymkiem – mały, dyskretny znaczek kopiowania w prawym górnym rogu kodu; podgląd w ustawieniach wygląda tak samo.
 - Komunikat „Nie można odpowiedzieć” na całą szerokość, z tłem zanikającym ku górze i wyśrodkowanym nagłówkiem.
 - Liczniki na zakładkach nie są już przycinane przez krawędź przycisku.
+- **Planowanie z potwierdzeniem**: w arkuszu „Zaplanuj wysłanie” przełącznik „Zapytaj przed wysłaniem” – o wybranej godzinie przychodzi powiadomienie z przyciskami „Wyślij” i „Nie wysyłaj”; bez niego wiadomość wychodzi sama.
 - Uporządkowany wygląd ustawień: równe wysokości i odstępy wierszy, wyrównane nagłówki sekcji, czytelniejsze opisy.
 
 ## 1.1.0

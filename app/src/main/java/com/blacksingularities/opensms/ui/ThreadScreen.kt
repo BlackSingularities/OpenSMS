@@ -654,7 +654,7 @@ fun MessageStylePreview(style: MessageStyle, modifier: Modifier = Modifier) {
 @Composable
 private fun PreviewCodeBubble(style: MessageStyle, max: Dp) {
     val c = style.colors(false)
-    val sh = style.shape(false, older = false, newer = false)
+    val sh = style.shape(false, false, false)
     val text = "Twój kod logowania: 482913"
     var copied by remember { mutableStateOf(false) }
     LaunchedEffect(copied) { if (copied) { delay(1800); copied = false } }

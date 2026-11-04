@@ -550,6 +550,15 @@ private fun ColumnScope.ScheduledPage(vm: AppViewModel) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Rounded.Schedule, null, tint = Color.White, modifier = Modifier.size(18.dp))
                 Text(formatFull(m.time).substringBeforeLast(':'), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp, modifier = Modifier.padding(start = 8.dp).weight(1f))
+                if (m.confirm) {
+                    val waiting = m.time <= System.currentTimeMillis()
+                    Text(
+                        if (waiting) "Czeka na decyzję" else "Zapyta przed wysłaniem",
+                        color = if (waiting) Palette.Accent else Palette.TextDim,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
             }
             Text("Do: " + m.addresses.joinToString(", ") { com.blacksingularities.opensms.data.Contacts.displayName(context, it) }, color = Palette.TextDim, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
             Text(m.text, color = Color.White, fontSize = 14.sp, lineHeight = 19.sp, modifier = Modifier.padding(top = 6.dp))
