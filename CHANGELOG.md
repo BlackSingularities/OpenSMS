@@ -1,5 +1,9 @@
 # Zmiany
 
+## 1.2.1
+
+- Baner aktualizacji w aplikacji pokazuje tylko numer nowej wersji, bez listy zmian z GitHuba.
+
 ## 1.2.0
 
 - **Przełączanie kart gestem**: przesunięcie palcem w bok po pustym miejscu listy (pod rozmowami albo na pustej liście) zmienia kartę – Wszystkie, Nieprzeczytane, Archiwum itd.
