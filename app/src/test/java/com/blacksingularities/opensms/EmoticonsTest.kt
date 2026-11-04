@@ -22,7 +22,7 @@ class EmoticonsTest {
     fun `adresy i wyrazy zostaja bez zmian`() {
         assertEquals("http://example.com", Emoticons.apply("http://example.com"))
         assertEquals("waxd", Emoticons.apply("waxd"))
-        assertEquals("c:\dane", Emoticons.apply("c:\dane"))
+        assertEquals("c:\\dane", Emoticons.apply("c:\\dane"))
         assertEquals("zwykły tekst", Emoticons.apply("zwykły tekst"))
     }
 }
