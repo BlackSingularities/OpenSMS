@@ -378,7 +378,7 @@ private fun ColumnScope.MainSettings(vm: AppViewModel, onRequestPermissions: () 
     }
 
     Group("Aktualizacje") {
-        SwitchRow(Icons.Rounded.SystemUpdate, "Sprawdzaj przy starcie", "Nowe wersje z GitHub Releases", s.autoUpdateCheck) { s.autoUpdateCheck = it }
+        SwitchRow(Icons.Rounded.SystemUpdate, "Sprawdzaj przy starcie", "Nowe wersje aplikacji", s.autoUpdateCheck) { s.autoUpdateCheck = it }
         val status = when (val u = vm.update) {
             is UpdateState.Checking -> "Sprawdzanie…"
             is UpdateState.UpToDate -> "Masz najnowszą wersję"

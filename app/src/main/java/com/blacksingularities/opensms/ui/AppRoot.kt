@@ -175,7 +175,7 @@ private fun Onboarding(onRequestDefault: () -> Unit) {
             Feature(Icons.Rounded.Schedule, "Zaplanowane i szablony", "Wyślij później, szybkie odpowiedzi, podpis")
             Feature(Icons.Rounded.Block, "Filtr spamu", "Blokowanie numerów, słów kluczowych i nieznanych nadawców")
             Feature(Icons.Rounded.Contacts, "Dual SIM i kopia zapasowa", "Wybór karty przy wysyłce, eksport i import wiadomości")
-            Feature(Icons.Rounded.SystemUpdate, "Automatyczne aktualizacje", "Nowe wersje prosto z GitHuba")
+            Feature(Icons.Rounded.SystemUpdate, "Automatyczne aktualizacje", "Nowe wersje instalują się same")
         }
         Spacer(Modifier.height(28.dp))
         PillButton("Ustaw jako domyślną aplikację SMS", modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth(), onClick = onRequestDefault)

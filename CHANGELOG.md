@@ -1,5 +1,9 @@
 # Zmiany
 
+## 1.3.1
+
+- Komunikat o nowej wersji bez listy zmian, linków i informacji, skąd pobierana jest aktualizacja.
+
 ## 1.3.0
 
 - **Emotikony jako emoji**: `:)`, `;)`, `:D`, `XD`, `<3` i kilkadziesiąt innych wzorów pokazuje się w rozmowie i na liście jako emoji – także w środku zdania i zaraz po wyrazie („ok;)”). Sama emotikona w wiadomości rośnie jak duże emoji. Adresy `http://` i zwykłe wyrazy zostają nietknięte, a w bazie zapisana jest oryginalna treść. Przełącznik w Ustawieniach → Wygląd rozmowy.
