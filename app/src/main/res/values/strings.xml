@@ -532,4 +532,7 @@
     <string name="reakcje_jako_emoji_opis">“Reacted 👍 to …” shows as an emoji under the message; long-press a message to react</string>
     <string name="otworz_rozmowe">open conversation</string>
     <string name="nieprzeczytane_1">%1$s unread</string>
+    <string name="jezyk">Language</string>
+    <string name="jezyk_auto">Automatic</string>
+    <string name="jezyk_auto_opis">Same as the phone language</string>
 </resources>

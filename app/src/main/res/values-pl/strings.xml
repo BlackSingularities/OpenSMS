@@ -532,4 +532,7 @@
     <string name="reakcje_jako_emoji_opis">„Zareagowano 👍 na …” jako emoji pod wiadomością; przytrzymaj wiadomość, aby zareagować</string>
     <string name="otworz_rozmowe">otwórz rozmowę</string>
     <string name="nieprzeczytane_1">Nieprzeczytane: %1$s</string>
+    <string name="jezyk">Język</string>
+    <string name="jezyk_auto">Automatycznie</string>
+    <string name="jezyk_auto_opis">Taki jak język telefonu</string>
 </resources>

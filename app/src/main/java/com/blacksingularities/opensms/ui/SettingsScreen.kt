@@ -142,6 +142,11 @@ import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import android.os.Build
+import com.blacksingularities.opensms.BuildConfig
+import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.Translate
+import com.blacksingularities.opensms.ui.components.ActionSheet
 import kotlin.math.roundToInt
 
 @Composable
@@ -258,6 +263,39 @@ private fun ConversationLookGroup(vm: AppViewModel) {
         SwitchRow(Icons.Rounded.AddReaction, tr(R.string.reakcje_jako_emoji), tr(R.string.reakcje_jako_emoji_opis), s.reactions) { s.reactions = it }
     }
 }
+
+/**
+ * Język aplikacji (Android 13+). „Automatycznie” = język telefonu; lista języków pochodzi
+ * z katalogów values-xx (BuildConfig.LOCALES), więc nowe tłumaczenie pojawia się tu samo.
+ */
+@Composable
+private fun LanguageRow() {
+    if (Build.VERSION.SDK_INT < 33) return
+    val context = LocalContext.current
+    val lm = context.getSystemService(android.app.LocaleManager::class.java) ?: return
+    var sheet by remember { mutableStateOf(false) }
+    val chosen = lm.applicationLocales.takeIf { !it.isEmpty }?.get(0)
+    ActionRow(Icons.Rounded.Language, tr(R.string.jezyk), chosen?.let(::languageName) ?: tr(R.string.jezyk_auto)) { sheet = true }
+    if (sheet) {
+        ActionSheet(title = tr(R.string.jezyk), onDismiss = { sheet = false }) {
+            ActionRow(Icons.Rounded.Translate, tr(R.string.jezyk_auto), tr(R.string.jezyk_auto_opis)) {
+                sheet = false
+                lm.applicationLocales = android.os.LocaleList.getEmptyLocaleList()
+            }
+            BuildConfig.LOCALES.forEach { tag ->
+                val locale = Locale.forLanguageTag(tag)
+                ActionRow(Icons.Rounded.Language, languageName(locale)) {
+                    sheet = false
+                    lm.applicationLocales = android.os.LocaleList(locale)
+                }
+            }
+        }
+    }
+}
+
+/** Nazwa języka w nim samym („Polski”, „English”), żeby każdy znalazł swój. */
+private fun languageName(locale: Locale): String =
+    locale.getDisplayName(locale).replaceFirstChar { it.titlecase(locale) }
 
 @Composable
 private fun ColumnScope.MainSettings(vm: AppViewModel, onRequestPermissions: () -> Unit) {
@@ -427,6 +465,7 @@ private fun ColumnScope.MainSettings(vm: AppViewModel, onRequestPermissions: () 
     }
 
     Group(tr(R.string.system)) {
+        LanguageRow()
         ActionRow(Icons.Rounded.Security, tr(R.string.uprawnienia), tr(R.string.kontakty_karty_sim_powiadomienia)) { onRequestPermissions() }
         ActionRow(Icons.Rounded.AdminPanelSettings, tr(R.string.ustawienia_aplikacji_w_systemie)) {
             runCatching {

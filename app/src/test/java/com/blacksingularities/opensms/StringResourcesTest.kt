@@ -7,8 +7,9 @@ import org.junit.Test
 import java.io.File
 
 /**
- * Tłumaczenia: każdy napis musi istnieć po angielsku (domyślnie) i po polsku, z tymi samymi
- * argumentami, a każde `R.string.x` w kodzie musi mieć swój wpis.
+ * Tłumaczenia: angielski w `values/` jest wzorcem. Każdy katalog `values-xx` z `strings.xml`
+ * to kolejny język – nie może mieć kluczy spoza wzorca, a argumenty (%1$s…) muszą się zgadzać.
+ * Brakujące klucze są dozwolone (pokaże się angielski), ale polski musi być kompletny.
  */
 class StringResourcesTest {
     private val entry = Regex("<string name=\"(\\w+)\"[^>]*>(.*?)</string>")
@@ -20,18 +21,34 @@ class StringResourcesTest {
     private val en by lazy { load("src/main/res/values/strings.xml") }
     private val pl by lazy { load("src/main/res/values-pl/strings.xml") }
 
+    /** Wszystkie tłumaczenia: nazwa katalogu → napisy. */
+    private val translations by lazy {
+        File("src/main/res").listFiles().orEmpty()
+            .filter { it.name.startsWith("values-") && File(it, "strings.xml").exists() }
+            .associate { it.name to load(File(it, "strings.xml").path) }
+    }
+
     @Test
-    fun `oba jezyki maja te same klucze`() {
+    fun `polski jest kompletny`() {
         assertTrue(en.size > 400)
         assertEquals(en.keys, pl.keys)
     }
 
     @Test
-    fun `argumenty sa zgodne w obu jezykach`() {
-        for ((key, value) in en) {
-            val a = placeholder.findAll(value).map { it.value }.toSortedSet()
-            val b = placeholder.findAll(pl.getValue(key)).map { it.value }.toSortedSet()
-            assertEquals("Argumenty w $key", a, b)
+    fun `tlumaczenia nie maja obcych kluczy`() {
+        for ((dir, map) in translations) {
+            assertEquals("Klucze spoza values/strings.xml w $dir", emptySet<String>(), map.keys - en.keys)
+        }
+    }
+
+    @Test
+    fun `argumenty sa zgodne we wszystkich jezykach`() {
+        for ((dir, map) in translations) {
+            for ((key, value) in map) {
+                val a = placeholder.findAll(en.getValue(key)).map { it.value }.toSortedSet()
+                val b = placeholder.findAll(value).map { it.value }.toSortedSet()
+                assertEquals("Argumenty w $dir/$key", a, b)
+            }
         }
     }
 

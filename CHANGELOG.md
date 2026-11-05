@@ -1,5 +1,10 @@
 # Zmiany
 
+## 1.4.1
+
+- **Wybór języka**: Ustawienia → System → Język – „Automatycznie” (jak telefon) albo dowolny dostępny język; ten sam wybór jest w systemowych ustawieniach języka aplikacji (Android 13+).
+- **Łatwe dodawanie języków**: nowy plik `values-xx/strings.xml` wystarczy – lista języków w aplikacji i w systemie tworzy się sama. Instrukcja w `TRANSLATING.md`, a test pilnuje zgodności tłumaczeń.
+
 ## 1.4.0
 
 - **Język angielski**: wszystkie napisy przeniesione do zasobów; aplikacja mówi po polsku albo po angielsku zgodnie z językiem telefonu (można go też wybrać osobno dla OpenSMS w ustawieniach systemu). Daty i dni tygodnia także w języku telefonu.
