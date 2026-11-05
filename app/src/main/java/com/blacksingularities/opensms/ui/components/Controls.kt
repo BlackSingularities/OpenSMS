@@ -1,5 +1,8 @@
 package com.blacksingularities.opensms.ui.components
 
+import com.blacksingularities.opensms.R
+import com.blacksingularities.opensms.tr
+
 import androidx.compose.foundation.layout.heightIn
 import android.graphics.Bitmap
 import android.net.Uri
@@ -189,7 +192,7 @@ fun Group(
             if (collapsible) {
                 Icon(
                     Icons.Rounded.ExpandMore,
-                    if (expanded) "Zwiń sekcję $title" else "Rozwiń sekcję $title",
+                    if (expanded) tr(R.string.zwin_sekcje_1, title) else tr(R.string.rozwin_sekcje_1, title),
                     tint = Palette.Accent,
                     modifier = Modifier.size(18.dp).rotate(if (expanded) 0f else -90f),
                 )
@@ -443,7 +446,7 @@ fun ConfirmDialog(
         title = title,
         onDismiss = onDismiss,
         buttons = {
-            PillButton("Anuluj", primary = false, onClick = onDismiss)
+            PillButton(tr(R.string.anuluj), primary = false, onClick = onDismiss)
             PillButton(confirm, danger = danger, onClick = { onDismiss(); onConfirm() })
         },
     ) {

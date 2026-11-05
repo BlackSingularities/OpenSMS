@@ -1,5 +1,8 @@
 package com.blacksingularities.opensms.ui
 
+import com.blacksingularities.opensms.R
+import com.blacksingularities.opensms.tr
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -16,6 +19,11 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -159,11 +167,11 @@ fun ConversationsScreen(vm: AppViewModel) {
                     if (vm.loaded && visible.isEmpty()) {
                         item(key = "empty") {
                             when (vm.filter) {
-                                Filter.ALL -> EmptyState(Icons.Rounded.Forum, "Brak rozmów", "Napisz pierwszą wiadomość przyciskiem na dole ekranu.")
-                                Filter.UNREAD -> EmptyState(Icons.Rounded.DoneAll, "Wszystko przeczytane", "Nie ma nieprzeczytanych wiadomości.")
-                                Filter.PINNED -> EmptyState(Icons.Rounded.PushPin, "Brak przypiętych", "Przytrzymaj rozmowę i wybierz pinezkę, żeby była zawsze na górze.")
-                                Filter.ARCHIVED -> EmptyState(Icons.Rounded.Inbox, "Archiwum jest puste", "Zarchiwizowane rozmowy znikają z głównej listy, ale nowe wiadomości dalej przychodzą.")
-                                Filter.TRASH -> EmptyState(Icons.Rounded.Delete, "Kosz jest pusty", "Usunięte rozmowy czekają tu ${AppViewModel.TRASH_DAYS} dni, zanim znikną na dobre.")
+                                Filter.ALL -> EmptyState(Icons.Rounded.Forum, tr(R.string.brak_rozmow), tr(R.string.napisz_pierwsza_wiadomosc_przyciskiem_na))
+                                Filter.UNREAD -> EmptyState(Icons.Rounded.DoneAll, tr(R.string.wszystko_przeczytane), tr(R.string.nie_ma_nieprzeczytanych_wiadomosci))
+                                Filter.PINNED -> EmptyState(Icons.Rounded.PushPin, tr(R.string.brak_przypietych), tr(R.string.przytrzymaj_rozmowe_i_wybierz_pinezke))
+                                Filter.ARCHIVED -> EmptyState(Icons.Rounded.Inbox, tr(R.string.archiwum_jest_puste), tr(R.string.zarchiwizowane_rozmowy_znikaja_z_glownej))
+                                Filter.TRASH -> EmptyState(Icons.Rounded.Delete, tr(R.string.kosz_jest_pusty), tr(R.string.usuniete_rozmowy_czekaja_tu_1, AppViewModel.TRASH_DAYS))
                             }
                         }
                     }
@@ -208,9 +216,9 @@ fun ConversationsScreen(vm: AppViewModel) {
                     .padding(horizontal = if (expanded) 20.dp else 17.dp, vertical = 17.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(Icons.Rounded.Edit, "Nowa wiadomość", tint = Palette.Ink, modifier = Modifier.size(24.dp))
+                Icon(Icons.Rounded.Edit, tr(R.string.nowa_wiadomosc), tint = Palette.Ink, modifier = Modifier.size(24.dp))
                 AnimatedVisibility(visible = expanded) {
-                    Text("Nowa wiadomość", color = Palette.Ink, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.padding(start = 10.dp))
+                    Text(tr(R.string.nowa_wiadomosc), color = Palette.Ink, fontWeight = FontWeight.Bold, fontSize = 15.sp, modifier = Modifier.padding(start = 10.dp))
                 }
             }
         }
@@ -218,37 +226,37 @@ fun ConversationsScreen(vm: AppViewModel) {
 
     if (menu) {
         ActionSheet(title = null, onDismiss = { menu = false }) {
-            ActionRow(Icons.Rounded.DoneAll, "Oznacz wszystkie jako przeczytane") { menu = false; vm.markAllRead() }
-            ActionRow(Icons.Rounded.Archive, "Archiwum", "Rozmowy ukryte z głównej listy") { menu = false; vm.filter = Filter.ARCHIVED }
-            ActionRow(Icons.Rounded.Delete, "Kosz", "Usunięte rozmowy – ${AppViewModel.TRASH_DAYS} dni na przywrócenie") { menu = false; vm.filter = Filter.TRASH }
+            ActionRow(Icons.Rounded.DoneAll, tr(R.string.oznacz_wszystkie_jako_przeczytane)) { menu = false; vm.markAllRead() }
+            ActionRow(Icons.Rounded.Archive, tr(R.string.archiwum), tr(R.string.rozmowy_ukryte_z_glownej_listy)) { menu = false; vm.filter = Filter.ARCHIVED }
+            ActionRow(Icons.Rounded.Delete, tr(R.string.kosz), tr(R.string.usuniete_rozmowy_1_dni_na, AppViewModel.TRASH_DAYS)) { menu = false; vm.filter = Filter.TRASH }
             if (vm.filter == Filter.TRASH && vm.conversations.any { it.trashed }) {
-                ActionRow(Icons.Rounded.DeleteForever, "Opróżnij kosz", danger = true) { menu = false; confirmEmptyTrash = true }
+                ActionRow(Icons.Rounded.DeleteForever, tr(R.string.oproznij_kosz), danger = true) { menu = false; confirmEmptyTrash = true }
             }
-            ActionRow(Icons.Rounded.Schedule, "Zaplanowane wiadomości", plural(vm.settings.scheduled.size, "wiadomość", "wiadomości", "wiadomości")) {
+            ActionRow(Icons.Rounded.Schedule, tr(R.string.zaplanowane_wiadomosci), plural(vm.settings.scheduled.size, tr(R.string.wiadomosc_2), tr(R.string.wiadomosci_2), tr(R.string.wiadomosci_2))) {
                 menu = false; vm.push(Screen.SettingsScreen(SettingsPage.SCHEDULED))
             }
-            ActionRow(Icons.Rounded.Block, "Zablokowane", "Numery, słowa kluczowe i zatrzymane wiadomości") {
+            ActionRow(Icons.Rounded.Block, tr(R.string.zablokowane), tr(R.string.numery_slowa_kluczowe_i_zatrzymane)) {
                 menu = false; vm.push(Screen.SettingsScreen(SettingsPage.BLOCKED))
             }
-            ActionRow(Icons.Rounded.Settings, "Ustawienia") { menu = false; vm.push(Screen.SettingsScreen()) }
+            ActionRow(Icons.Rounded.Settings, tr(R.string.ustawienia)) { menu = false; vm.push(Screen.SettingsScreen()) }
         }
     }
     confirmDelete?.let { ids ->
         val forever = vm.filter == Filter.TRASH
         ConfirmDialog(
-            title = if (ids.size == 1) "Usunąć rozmowę?" else "Usunąć rozmowy (${ids.size})?",
-            text = if (forever) "Wszystkie wiadomości z ${if (ids.size == 1) "tej rozmowy" else "tych rozmów"} zostaną trwale usunięte z telefonu."
-            else "${if (ids.size == 1) "Rozmowa trafi" else "Rozmowy trafią"} do kosza na ${AppViewModel.TRASH_DAYS} dni.",
-            confirm = "Usuń",
+            title = if (ids.size == 1) tr(R.string.usunac_rozmowe) else tr(R.string.usunac_rozmowy_1, ids.size),
+            text = if (forever) tr(if (ids.size == 1) R.string.usun_trwale_tej else R.string.usun_trwale_tych)
+            else tr(if (ids.size == 1) R.string.rozmowa_trafi_do_kosza_na else R.string.rozmowy_trafia_do_kosza, AppViewModel.TRASH_DAYS),
+            confirm = tr(R.string.usun),
             onDismiss = { confirmDelete = null },
             onConfirm = { vm.trashThreads(ids) },
         )
     }
     if (confirmEmptyTrash) {
         ConfirmDialog(
-            title = "Opróżnić kosz?",
-            text = "Wszystkie rozmowy z kosza zostaną trwale usunięte z telefonu.",
-            confirm = "Opróżnij",
+            title = tr(R.string.oproznic_kosz),
+            text = tr(R.string.wszystkie_rozmowy_z_kosza_zostana),
+            confirm = tr(R.string.oproznij),
             onDismiss = { confirmEmptyTrash = false },
             onConfirm = { vm.emptyTrash() },
         )
@@ -256,9 +264,9 @@ fun ConversationsScreen(vm: AppViewModel) {
     confirmBlock?.let { ids ->
         val addresses = vm.conversations.filter { it.conv.threadId in ids }.flatMap { it.conv.addresses }.distinct()
         ConfirmDialog(
-            title = "Zablokować?",
-            text = "Nowe wiadomości od: ${addresses.joinToString(", ")} nie będą pokazywane. Rozmowy trafią do archiwum. Zablokowane wiadomości znajdziesz w ustawieniach.",
-            confirm = "Zablokuj",
+            title = tr(R.string.zablokowac),
+            text = tr(R.string.zablokowac_opis_1, addresses.joinToString(", ")),
+            confirm = tr(R.string.zablokuj),
             onDismiss = { confirmBlock = null },
             onConfirm = { vm.blockAddresses(addresses, ids) },
         )
@@ -278,7 +286,7 @@ private fun Header(vm: AppViewModel, onMenu: () -> Unit) {
             SearchPill(vm, p, Modifier.width(lerp(44.dp, maxWidth, p)))
         }
         Spacer(Modifier.width(8.dp))
-        RoundIcon(Icons.Rounded.MoreVert, "Menu", badge = if (vm.updatePending) "1" else null, onClick = onMenu)
+        RoundIcon(Icons.Rounded.MoreVert, tr(R.string.menu), badge = if (vm.updatePending) "1" else null, onClick = onMenu)
     }
 }
 
@@ -300,14 +308,14 @@ private fun SearchPill(vm: AppViewModel, p: Float, modifier: Modifier) {
         ) {
             Icon(
                 if (vm.searching) Icons.AutoMirrored.Rounded.ArrowBack else Icons.Rounded.Search,
-                if (vm.searching) "Zamknij wyszukiwanie" else "Szukaj",
+                if (vm.searching) tr(R.string.zamknij_wyszukiwanie) else tr(R.string.szukaj),
                 tint = Color.White,
                 modifier = Modifier.size(22.dp),
             )
         }
         if (p > 0f) {
             Box(Modifier.weight(1f).graphicsLayer { alpha = p }) {
-                if (vm.query.isEmpty()) Text("Szukaj w wiadomościach i kontaktach", color = Palette.TextFaint, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (vm.query.isEmpty()) Text(tr(R.string.szukaj_w_wiadomosciach_i_kontaktach), color = Palette.TextFaint, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 BasicTextField(
                     value = vm.query,
                     onValueChange = { vm.updateQuery(it) },
@@ -320,7 +328,7 @@ private fun SearchPill(vm: AppViewModel, p: Float, modifier: Modifier) {
             }
             if (vm.query.isNotEmpty()) {
                 Box(Modifier.size(44.dp).clickable { vm.updateQuery("") }, contentAlignment = Alignment.Center) {
-                    Icon(Icons.Rounded.Close, "Wyczyść", tint = Color.White, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Rounded.Close, tr(R.string.wyczysc), tint = Color.White, modifier = Modifier.size(20.dp))
                 }
             } else {
                 Spacer(Modifier.width(16.dp))
@@ -393,18 +401,18 @@ private fun SelectionBar(vm: AppViewModel, onDelete: () -> Unit, onBlock: () -> 
     val allArchived = selected.isNotEmpty() && selected.all { it.archived }
     val anyUnread = selected.any { it.conv.unread > 0 }
     Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        RoundIcon(Icons.Rounded.Close, "Anuluj zaznaczenie", onClick = { vm.selection = emptySet() })
+        RoundIcon(Icons.Rounded.Close, tr(R.string.anuluj_zaznaczenie), onClick = { vm.selection = emptySet() })
         Text(ids.size.toString(), fontSize = 22.sp, fontWeight = FontWeight.Black, color = Color.White, modifier = Modifier.padding(start = 14.dp).weight(1f))
         if (vm.filter == Filter.TRASH) {
-            RoundIcon(Icons.Rounded.RestoreFromTrash, "Przywróć", flat = true, onClick = { vm.restoreThreads(ids) })
-            RoundIcon(Icons.Rounded.DeleteForever, "Usuń na zawsze", flat = true, tint = Palette.Record, onClick = onDelete)
+            RoundIcon(Icons.Rounded.RestoreFromTrash, tr(R.string.przywroc), flat = true, onClick = { vm.restoreThreads(ids) })
+            RoundIcon(Icons.Rounded.DeleteForever, tr(R.string.usun_na_zawsze), flat = true, tint = Palette.Record, onClick = onDelete)
             return@Row
         }
-        RoundIcon(Icons.Rounded.PushPin, "Przypnij", flat = true, onClick = { vm.pinSelected() })
-        RoundIcon(if (anyUnread) Icons.Rounded.MarkChatRead else Icons.Rounded.MarkChatUnread, if (anyUnread) "Przeczytane" else "Nieprzeczytane", flat = true, onClick = { vm.markRead(ids, anyUnread) })
-        RoundIcon(if (allArchived) Icons.Rounded.Unarchive else Icons.Rounded.Archive, if (allArchived) "Przywróć" else "Archiwizuj", flat = true, onClick = { vm.archive(ids, !allArchived) })
-        RoundIcon(Icons.Rounded.Block, "Zablokuj", flat = true, onClick = onBlock)
-        RoundIcon(Icons.Rounded.Delete, "Usuń", flat = true, tint = Palette.Record, onClick = {
+        RoundIcon(Icons.Rounded.PushPin, tr(R.string.przypnij), flat = true, onClick = { vm.pinSelected() })
+        RoundIcon(if (anyUnread) Icons.Rounded.MarkChatRead else Icons.Rounded.MarkChatUnread, if (anyUnread) tr(R.string.przeczytane) else tr(R.string.nieprzeczytane), flat = true, onClick = { vm.markRead(ids, anyUnread) })
+        RoundIcon(if (allArchived) Icons.Rounded.Unarchive else Icons.Rounded.Archive, if (allArchived) tr(R.string.przywroc) else tr(R.string.archiwizuj), flat = true, onClick = { vm.archive(ids, !allArchived) })
+        RoundIcon(Icons.Rounded.Block, tr(R.string.zablokuj), flat = true, onClick = onBlock)
+        RoundIcon(Icons.Rounded.Delete, tr(R.string.usun), flat = true, tint = Palette.Record, onClick = {
             if (vm.settings.confirmDelete) onDelete() else vm.trashThreads(ids)
         })
     }
@@ -418,16 +426,16 @@ private fun SearchResults(vm: AppViewModel) {
     }
     LazyColumn(Modifier.fillMaxSize().imePadding(), contentPadding = PaddingValues(bottom = 40.dp)) {
         if (q.length >= 2 && convMatches.isEmpty() && vm.searchResults.isEmpty()) {
-            item { EmptyState(Icons.Rounded.SearchOff, "Nic nie znaleziono", "Spróbuj innego słowa albo fragmentu numeru.") }
+            item { EmptyState(Icons.Rounded.SearchOff, tr(R.string.nic_nie_znaleziono), tr(R.string.sprobuj_innego_slowa_albo_fragmentu)) }
         }
         if (convMatches.isNotEmpty()) {
-            item { SectionLabel("Rozmowy") }
+            item { SectionLabel(tr(R.string.rozmowy)) }
             items(convMatches, key = { "c" + it.conv.threadId }) { item ->
                 ConversationRow(vm, item, selected = false, onClick = { vm.openThread(item.conv.threadId) }, onLongClick = {})
             }
         }
         if (vm.searchResults.isNotEmpty()) {
-            item { SectionLabel("Wiadomości · ${vm.searchResults.size}") }
+            item { SectionLabel(tr(R.string.wiadomosci_1, vm.searchResults.size)) }
             items(vm.searchResults, key = { "m" + it.key }) { m -> SearchHit(vm, m, q) }
         }
     }
@@ -567,10 +575,10 @@ private fun swipeIcon(a: SwipeAction, item: ConversationItem): ImageVector = whe
 }
 
 private fun swipeLabel(a: SwipeAction, item: ConversationItem): String = when (a) {
-    SwipeAction.ARCHIVE -> if (item.archived) "Przywróć" else "Archiwizuj"
-    SwipeAction.READ -> if (item.conv.unread > 0) "Przeczytane" else "Nieprzeczytane"
-    SwipeAction.PIN -> if (item.pinned) "Odepnij" else "Przypnij"
-    SwipeAction.DELETE -> "Usuń"
+    SwipeAction.ARCHIVE -> if (item.archived) tr(R.string.przywroc) else tr(R.string.archiwizuj)
+    SwipeAction.READ -> if (item.conv.unread > 0) tr(R.string.przeczytane) else tr(R.string.nieprzeczytane)
+    SwipeAction.PIN -> if (item.pinned) tr(R.string.odepnij) else tr(R.string.przypnij)
+    SwipeAction.DELETE -> tr(R.string.usun)
     SwipeAction.NONE -> ""
 }
 
@@ -605,12 +613,22 @@ fun ConversationRow(
             .fillMaxWidth()
             .background(if (selected) Palette.PanelHigh else Color.Transparent)
             .combinedClickable(
+                onClickLabel = tr(R.string.otworz_rozmowe),
+                onLongClickLabel = tr(R.string.zaznacz),
                 onClick = onClick,
                 onLongClick = {
                     if (vm.settings.haptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                     onLongClick()
                 },
             )
+            // Czytnik ekranu: gesty przesunięcia są niedostępne, więc te same akcje są w menu „Działania”.
+            .semantics {
+                this.selected = selected
+                if (unread) stateDescription = tr(R.string.nieprzeczytane_1, c.unread)
+                customActions = listOf(SwipeAction.ARCHIVE, SwipeAction.READ, SwipeAction.PIN, SwipeAction.DELETE).map { a ->
+                    CustomAccessibilityAction(swipeLabel(a, item)) { runSwipe(vm, a, item); true }
+                }
+            }
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -628,8 +646,8 @@ fun ConversationRow(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false),
                     )
-                    if (item.muted) Icon(Icons.Rounded.NotificationsOff, "Wyciszona", tint = Palette.TextFaint, modifier = Modifier.padding(start = 5.dp).size(14.dp))
-                    if (item.pinned) Icon(Icons.Rounded.PushPin, "Przypięta", tint = Palette.TextDim, modifier = Modifier.padding(start = 5.dp).size(14.dp))
+                    if (item.muted) Icon(Icons.Rounded.NotificationsOff, tr(R.string.wyciszona), tint = Palette.TextFaint, modifier = Modifier.padding(start = 5.dp).size(14.dp))
+                    if (item.pinned) Icon(Icons.Rounded.PushPin, tr(R.string.przypieta), tint = Palette.TextDim, modifier = Modifier.padding(start = 5.dp).size(14.dp))
                 }
                 Text(
                     formatListTime(c.date, vm.settings.relativeTimes),
@@ -643,13 +661,13 @@ fun ConversationRow(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 val text = buildAnnotatedString {
                     if (!draft.isNullOrBlank()) {
-                        withStyle(SpanStyle(color = Palette.Accent, fontWeight = FontWeight.Bold)) { append("Szkic: ") }
+                        withStyle(SpanStyle(color = Palette.Accent, fontWeight = FontWeight.Bold)) { append(tr(R.string.szkic)) }
                         append(draft)
                     } else {
                         append(c.snippet.replace('\n', ' '))
                     }
                 }
-                if (c.error) Icon(Icons.Rounded.Error, "Błąd wysyłania", tint = Palette.Record, modifier = Modifier.padding(end = 4.dp).size(15.dp))
+                if (c.error) Icon(Icons.Rounded.Error, tr(R.string.blad_wysylania), tint = Palette.Record, modifier = Modifier.padding(end = 4.dp).size(15.dp))
                 Text(
                     text,
                     color = if (unread) Color.White else Palette.TextDim,

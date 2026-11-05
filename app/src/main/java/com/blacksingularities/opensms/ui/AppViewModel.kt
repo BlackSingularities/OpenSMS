@@ -1,5 +1,8 @@
 package com.blacksingularities.opensms.ui
 
+import com.blacksingularities.opensms.R
+import com.blacksingularities.opensms.tr
+
 import android.app.Application
 import android.app.role.RoleManager
 import android.database.ContentObserver
@@ -25,6 +28,7 @@ import com.blacksingularities.opensms.data.SimCard
 import com.blacksingularities.opensms.data.Sims
 import com.blacksingularities.opensms.mms.MmsDownloader
 import com.blacksingularities.opensms.mms.MmsSender
+import com.blacksingularities.opensms.notify.ConversationShortcuts
 import com.blacksingularities.opensms.notify.Notifier
 import com.blacksingularities.opensms.schedule.Scheduler
 import com.blacksingularities.opensms.sms.MessageSender
@@ -56,7 +60,11 @@ sealed interface Screen {
 
 enum class SettingsPage { MAIN, BLOCKED, BLOCKED_LOG, TEMPLATES, SCHEDULED, STATS }
 
-enum class Filter(val label: String) { ALL("Wszystkie"), UNREAD("Nieprzeczytane"), PINNED("Przypięte"), ARCHIVED("Archiwum"), TRASH("Kosz") }
+enum class Filter(private val labelRes: Int) {
+    ALL(R.string.wszystkie), UNREAD(R.string.nieprzeczytane), PINNED(R.string.przypiete), ARCHIVED(R.string.archiwum), TRASH(R.string.kosz);
+
+    val label: String get() = tr(labelRes)
+}
 
 /** Rozmowa z gotowymi danymi do wyświetlenia. */
 data class ConversationItem(
@@ -91,6 +99,18 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     val screen: Screen get() = stack.last()
 
     var isDefault by mutableStateOf(false)
+
+    /** Blokada aplikacji: zablokowana od startu procesu i po dłuższym pobycie w tle. */
+    var locked by mutableStateOf(settings.appLock)
+    private var backgroundAt = 0L
+
+    fun onBackground() {
+        backgroundAt = System.currentTimeMillis()
+    }
+
+    fun onReturn() {
+        if (settings.appLock && backgroundAt > 0 && System.currentTimeMillis() - backgroundAt > LOCK_GRACE_MS) locked = true
+    }
     var conversations by mutableStateOf<List<ConversationItem>>(emptyList())
         private set
     var loaded by mutableStateOf(false)
@@ -396,7 +416,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val allPinned = ids.all { settings.isPinned(it) }
         settings.togglePinned(ids, !allPinned)
         selection = emptySet()
-        notify(if (allPinned) "Odpięto" else "Przypięto") { settings.togglePinned(ids, allPinned); reload() }
+        notify(if (allPinned) tr(R.string.odpieto) else tr(R.string.przypieto)) { settings.togglePinned(ids, allPinned); reload() }
         reload()
     }
 
@@ -404,7 +424,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         val before = ids.filter { settings.isArchived(it) }
         settings.toggleArchived(ids, on)
         selection = emptySet()
-        notify(if (on) "Przeniesiono do archiwum" else "Przywrócono z archiwum") {
+        notify(if (on) tr(R.string.przeniesiono_do_archiwum) else tr(R.string.przywrocono_z_archiwum)) {
             settings.toggleArchived(ids, false); settings.toggleArchived(before, true); reload()
         }
         reload()
@@ -412,7 +432,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun markRead(ids: Set<Long>, read: Boolean, undoable: Boolean = true) {
         selection = emptySet()
-        if (undoable) notify(if (read) "Oznaczono jako przeczytane" else "Oznaczono jako nieprzeczytane") { markRead(ids, !read, undoable = false) }
+        if (undoable) notify(if (read) tr(R.string.oznaczono_jako_przeczytane) else tr(R.string.oznaczono_jako_nieprzeczytane)) { markRead(ids, !read, undoable = false) }
         viewModelScope.launch(Dispatchers.IO) {
             ids.forEach {
                 if (read) {
@@ -429,7 +449,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             store.markAllRead()
             conversations.forEach { Notifier.cancel(ctx, it.conv.threadId) }
         }
-        toast = "Wszystko oznaczone jako przeczytane"
+        toast = tr(R.string.wszystko_oznaczone_jako_przeczytane)
     }
 
     /** Komunikat z opcjonalnym „Cofnij”. */
@@ -447,7 +467,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         settings.toggleTrashed(move, true)
         selection = emptySet()
         move.forEach { Notifier.cancel(ctx, it) }
-        notify(if (move.size == 1) "Przeniesiono do kosza" else "Przeniesiono do kosza: ${move.size}") { restoreThreads(move) }
+        notify(if (move.size == 1) tr(R.string.przeniesiono_do_kosza) else tr(R.string.przeniesiono_do_kosza_1, move.size)) { restoreThreads(move) }
         if (openThreadId?.let { it in move } == true) home()
         reload()
     }
@@ -455,7 +475,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun restoreThreads(ids: Set<Long>) {
         settings.toggleTrashed(ids, false)
         selection = emptySet()
-        notify(if (ids.size == 1) "Przywrócono rozmowę" else "Przywrócono rozmowy: ${ids.size}") { settings.toggleTrashed(ids, true); reload() }
+        notify(if (ids.size == 1) tr(R.string.przywrocono_rozmowe) else tr(R.string.przywrocono_rozmowy_1, ids.size)) { settings.toggleTrashed(ids, true); reload() }
         reload()
     }
 
@@ -470,6 +490,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         if (old.isNotEmpty()) viewModelScope.launch(Dispatchers.IO) {
             old.forEach { store.deleteThread(it) }
             settings.forgetThreads(old)
+            ConversationShortcuts.remove(ctx, old)
         }
     }
 
@@ -479,8 +500,9 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             withContext(Dispatchers.IO) {
                 ids.forEach { store.deleteThread(it); Notifier.cancel(ctx, it) }
                 settings.forgetThreads(ids)
+                ConversationShortcuts.remove(ctx, ids)
             }
-            notify(if (ids.size == 1) "Usunięto rozmowę" else "Usunięto rozmowy: ${ids.size}")
+            notify(if (ids.size == 1) tr(R.string.usunieto_rozmowe) else tr(R.string.usunieto_rozmowy_1, ids.size))
             if (openThreadId?.let { it in ids } == true) home()
             reload()
         }
@@ -489,7 +511,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     fun toggleMute(threadId: Long) {
         val on = !settings.isMuted(threadId)
         settings.toggleMuted(threadId, on)
-        notify(if (on) "Powiadomienia wyciszone" else "Powiadomienia włączone") { settings.toggleMuted(threadId, !on); reload() }
+        notify(if (on) tr(R.string.powiadomienia_wyciszone) else tr(R.string.powiadomienia_wlaczone)) { settings.toggleMuted(threadId, !on); reload() }
         reload()
     }
 
@@ -506,7 +528,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                 reload()
             }
         }
-        notify(if (addresses.size == 1) "Zablokowano ${addresses[0]}" else "Zablokowano numery: ${addresses.size}") {
+        notify(if (addresses.size == 1) tr(R.string.zablokowano_1, addresses[0]) else tr(R.string.zablokowano_numery_1, addresses.size)) {
             settings.blockedNumbers = settings.blockedNumbers - added
             if (alsoDelete) settings.toggleTrashed(threadIds, false)
             else { settings.toggleArchived(threadIds, false); settings.toggleArchived(wasArchived, true) }
@@ -522,13 +544,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
 
     fun send(target: Screen.Thread, text: String, attachments: List<Attachment>, subId: Int, onFailure: () -> Unit = {}) {
         if (target.addresses.isEmpty() || (text.isBlank() && attachments.isEmpty())) return
-        busy = if (attachments.isNotEmpty()) "Przygotowywanie MMS…" else null
+        busy = if (attachments.isNotEmpty()) tr(R.string.przygotowywanie_mms) else null
         viewModelScope.launch {
             val result = withContext(Dispatchers.IO) {
                 runCatching { MessageSender.send(ctx, target.addresses, text, attachments, subId) }
             }
             busy = null
             result.onSuccess { r ->
+                launch(Dispatchers.IO) { ConversationShortcuts.push(ctx, r.threadId, target.addresses) }
                 target.threadId?.let { settings.saveDraft(it, "") }
                 settings.saveDraft(r.threadId, "")
                 if (target.threadId == null || target.threadId != r.threadId) {
@@ -538,9 +561,19 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     loadMessages(markRead = false)
                 }
             }.onFailure {
-                toast = it.message ?: "Nie udało się wysłać"
+                toast = it.message ?: tr(R.string.nie_udalo_sie_wyslac)
                 onFailure()
             }
+        }
+    }
+
+    /** Krótka wiadomość wysyłana bez dotykania pola wpisywania (np. reakcja). */
+    fun sendQuick(addresses: List<String>, text: String, subId: Int) {
+        if (addresses.isEmpty() || text.isBlank()) return
+        viewModelScope.launch {
+            val result = withContext(Dispatchers.IO) { runCatching { MessageSender.send(ctx, addresses, text, emptyList(), subId) } }
+            result.onSuccess { loadMessages(markRead = false) }
+                .onFailure { toast = it.message ?: tr(R.string.nie_udalo_sie_wyslac) }
         }
     }
 
@@ -549,7 +582,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         Scheduler.add(ctx, ScheduledMessage(System.currentTimeMillis(), target.addresses, text.trim(), time, subId, confirm))
         target.threadId?.let { settings.saveDraft(it, "") }
         replace(target.copy(text = "", attachments = emptyList()))
-        toast = (if (confirm) "Zapytam o wysłanie " else "Zaplanowano na ") + formatFull(time).substringBeforeLast(':')
+        toast = (if (confirm) tr(R.string.zapytam_o_wyslanie) else tr(R.string.zaplanowano_na)) + formatFull(time).substringBeforeLast(':')
     }
 
     fun saveDraft(threadId: Long?, text: String) {
@@ -560,14 +593,14 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch(Dispatchers.IO) {
             runCatching {
                 if (m.isMms) MmsSender.retry(ctx, m.id) else MessageSender.retrySms(ctx, m.uri, m.address, m.body, m.subId)
-            }.onFailure { withContext(Dispatchers.Main) { toast = it.message ?: "Nie udało się wysłać" } }
+            }.onFailure { withContext(Dispatchers.Main) { toast = it.message ?: tr(R.string.nie_udalo_sie_wyslac) } }
         }
     }
 
     fun downloadMms(m: Message) {
         viewModelScope.launch(Dispatchers.IO) {
             runCatching { MmsDownloader.retry(ctx, m.id) }
-                .onFailure { withContext(Dispatchers.Main) { toast = "Nie można pobrać MMS: ${it.message}" } }
+                .onFailure { withContext(Dispatchers.Main) { toast = tr(R.string.nie_mozna_pobrac_mms_1, it.message) } }
         }
     }
 
@@ -582,7 +615,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
             hiddenMessages = hiddenMessages - ids
             loadMessages(markRead = false)
         }
-        notify(if (list.size == 1) "Usunięto wiadomość" else "Usunięto wiadomości: ${list.size}") {
+        notify(if (list.size == 1) tr(R.string.usunieto_wiadomosc) else tr(R.string.usunieto_wiadomosci_1, list.size)) {
             job.cancel()
             hiddenMessages = hiddenMessages - ids
             loadMessages(markRead = false)
@@ -632,12 +665,12 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                     updateBannerHidden = false
                     UpdateState.Available(info)
                 } else {
-                    if (!silent) toast = "Masz najnowszą wersję"
+                    if (!silent) toast = tr(R.string.masz_najnowsza_wersje)
                     UpdateState.UpToDate
                 }
             } catch (e: Exception) {
-                if (!silent) toast = e.message ?: "Nie można sprawdzić aktualizacji"
-                if (silent) UpdateState.Idle else UpdateState.Failed(e.message ?: "Błąd")
+                if (!silent) toast = e.message ?: tr(R.string.nie_mozna_sprawdzic_aktualizacji)
+                if (silent) UpdateState.Idle else UpdateState.Failed(e.message ?: tr(R.string.blad))
             }
         }
     }
@@ -646,7 +679,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         when (val u = update) {
             is UpdateState.Available -> {
                 if (!UpdateManager.canInstall(ctx)) {
-                    toast = "Zezwól na instalowanie aplikacji z OpenSMS i dotknij ponownie"
+                    toast = tr(R.string.zezwol_na_instalowanie_aplikacji_z)
                     UpdateManager.openInstallPermissionSettings(ctx)
                     return
                 }
@@ -659,7 +692,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
                         update = UpdateState.Ready(u.info, file)
                     } catch (e: Exception) {
                         update = UpdateState.Available(u.info)
-                        toast = e.message ?: "Nie udało się pobrać aktualizacji"
+                        toast = e.message ?: tr(R.string.nie_udalo_sie_pobrac_aktualizacji)
                     }
                 }
             }
@@ -676,6 +709,8 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     companion object {
         const val PAGE = 150
         const val UNDO_MS = 5_000L
+        /** Krótkie wyjście z aplikacji (np. po zdjęcie) nie wymaga ponownego odblokowania. */
+        const val LOCK_GRACE_MS = 30_000L
         const val TRASH_DAYS = 30
     }
 }

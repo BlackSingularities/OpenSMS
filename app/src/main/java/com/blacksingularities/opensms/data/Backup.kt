@@ -1,5 +1,8 @@
 package com.blacksingularities.opensms.data
 
+import com.blacksingularities.opensms.R
+import com.blacksingularities.opensms.tr
+
 import android.content.Context
 import android.net.Uri
 import org.json.JSONArray
@@ -32,14 +35,14 @@ object Backup {
             .put("exported", System.currentTimeMillis())
             .put("sms", arr)
         context.contentResolver.openOutputStream(target, "wt")?.use { it.write(root.toString().toByteArray(Charsets.UTF_8)) }
-            ?: error("Nie można zapisać pliku")
+            ?: error(tr(R.string.nie_mozna_zapisac_pliku))
         return list.size
     }
 
     fun import(context: Context, source: Uri, onProgress: (Float) -> Unit = {}): Result {
-        val text = context.contentResolver.openInputStream(source)?.use { it.readBytes().toString(Charsets.UTF_8) } ?: error("Nie można odczytać pliku")
-        val root = runCatching { JSONObject(text) }.getOrNull() ?: error("To nie jest plik kopii OpenSMS")
-        if (root.optString("format") != "opensms-backup") error("To nie jest plik kopii OpenSMS")
+        val text = context.contentResolver.openInputStream(source)?.use { it.readBytes().toString(Charsets.UTF_8) } ?: error(tr(R.string.nie_mozna_odczytac_pliku))
+        val root = runCatching { JSONObject(text) }.getOrNull() ?: error(tr(R.string.to_nie_jest_plik_kopii))
+        if (root.optString("format") != "opensms-backup") error(tr(R.string.to_nie_jest_plik_kopii))
         val arr = root.optJSONArray("sms") ?: JSONArray()
         val store = MessageStore(context)
         var added = 0

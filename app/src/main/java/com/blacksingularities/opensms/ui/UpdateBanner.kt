@@ -1,5 +1,8 @@
 package com.blacksingularities.opensms.ui
 
+import com.blacksingularities.opensms.R
+import com.blacksingularities.opensms.tr
+
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -39,10 +42,10 @@ fun UpdateBanner(vm: AppViewModel, modifier: Modifier = Modifier) {
     val u = vm.update
     AnimatedVisibility(visible = vm.updatePending && !vm.updateBannerHidden, modifier = modifier) {
         val (title, action) = when (u) {
-            is UpdateState.Available -> "Nowa wersja ${u.info.version}" to "Aktualizuj"
+            is UpdateState.Available -> tr(R.string.nowa_wersja_1, u.info.version) to tr(R.string.aktualizuj)
             is UpdateState.Downloading -> "Pobieranie ${u.info.version} · ${(u.progress * 100).roundToInt()}%" to null
-            is UpdateState.Ready -> "Wersja ${u.info.version} pobrana" to "Zainstaluj"
-            is UpdateState.Installing -> "Instalowanie ${u.info.version}…" to null
+            is UpdateState.Ready -> tr(R.string.wersja_1_pobrana, u.info.version) to tr(R.string.zainstaluj)
+            is UpdateState.Installing -> tr(R.string.instalowanie_1, u.info.version) to null
             else -> "" to null
         }
         Column(
@@ -58,7 +61,7 @@ fun UpdateBanner(vm: AppViewModel, modifier: Modifier = Modifier) {
                 Column(Modifier.weight(1f)) {
                     Text(title, color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
                     Text(
-                        if (u is UpdateState.Available) "Pobierze się i zainstaluje automatycznie" else "Nie zamykaj aplikacji",
+                        if (u is UpdateState.Available) tr(R.string.pobierze_sie_i_zainstaluje_automatycznie) else tr(R.string.nie_zamykaj_aplikacji),
                         color = Palette.TextDim,
                         fontSize = 11.sp,
                     )
@@ -79,7 +82,7 @@ fun UpdateBanner(vm: AppViewModel, modifier: Modifier = Modifier) {
                 if (u is UpdateState.Available) {
                     Icon(
                         Icons.Rounded.Close,
-                        "Później",
+                        tr(R.string.pozniej),
                         tint = Palette.TextDim,
                         modifier = Modifier
                             .padding(start = 6.dp)

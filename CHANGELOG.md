@@ -1,5 +1,17 @@
 # Zmiany
 
+## 1.4.0
+
+- **Język angielski**: wszystkie napisy przeniesione do zasobów; aplikacja mówi po polsku albo po angielsku zgodnie z językiem telefonu (można go też wybrać osobno dla OpenSMS w ustawieniach systemu). Daty i dni tygodnia także w języku telefonu.
+- **Filtr spamu**: podejrzane wiadomości od nieznanych nadawców (fałszywe dopłaty do paczek, „blokada konta”, skrócone linki) trafiają do zatrzymanych zamiast do skrzynki. Działa wyłącznie w telefonie; przełącznik w Ustawieniach → Prywatność i filtry.
+- **Reakcje**: „Reacted 👍 to …”, „Liked …”, „Polubiono …” z Google Messages i iPhone'ów pokazują się jako emoji pod wiadomością, a nie jako osobne dymki. Przytrzymaj wiadomość, żeby samemu zareagować.
+- **Zaznaczanie wielu wiadomości**: „Zaznacz” w menu wiadomości, potem kopiowanie, przekazanie dalej albo usunięcie kilku naraz.
+- **Blokada aplikacji** odciskiem palca, twarzą albo PIN-em ekranu blokady; podgląd w ostatnich aplikacjach jest wtedy zasłonięty.
+- **Treść na ekranie blokady** – nowy przełącznik; domyślnie ekran blokady pokazuje tylko „Nowa wiadomość”.
+- **Skróty rozmów**: powiadomienia trafiają do sekcji „Rozmowy” Androida (można oznaczyć rozmowę jako priorytetową), a rozmowy pojawiają się w arkuszu udostępniania.
+- **Czytnik ekranu**: dymki podają nadawcę i godzinę, akcje przesunięcia na liście są dostępne w menu „Działania” TalkBacka, opisane przyciski i stany.
+- Nowe testy: reakcje, filtr spamu, kompletność tłumaczeń i odmiana liczebników.
+
 ## 1.3.2
 
 - Bez żadnych wzmianek o GitHubie w aplikacji: nowy adres serwera aktualizacji, komunikaty błędów bez nazw zewnętrznych serwerów.

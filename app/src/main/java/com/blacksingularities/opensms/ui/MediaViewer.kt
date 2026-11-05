@@ -1,5 +1,8 @@
 package com.blacksingularities.opensms.ui
 
+import com.blacksingularities.opensms.R
+import com.blacksingularities.opensms.tr
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -98,7 +101,7 @@ fun MediaViewer(vm: AppViewModel, s: Screen.Media) {
             )
             if (video) {
                 Box(Modifier.align(Alignment.Center).size(76.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.6f)), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Rounded.PlayArrow, "Odtwórz", tint = Color.White, modifier = Modifier.size(46.dp))
+                    Icon(Icons.Rounded.PlayArrow, tr(R.string.odtworz), tint = Color.White, modifier = Modifier.size(46.dp))
                 }
             }
         }
@@ -107,22 +110,22 @@ fun MediaViewer(vm: AppViewModel, s: Screen.Media) {
                 Modifier.fillMaxWidth().screenPadding().padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                RoundIcon(Icons.Rounded.Close, "Zamknij", onClick = { vm.back() })
+                RoundIcon(Icons.Rounded.Close, tr(R.string.zamknij), onClick = { vm.back() })
                 Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                    Text(s.name ?: if (video) "Film" else "Zdjęcie", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(s.name ?: if (video) tr(R.string.film) else tr(R.string.zdjecie_2), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(s.mime, color = Palette.TextDim, fontSize = 11.sp)
                 }
-                RoundIcon(Icons.Rounded.Share, "Udostępnij", onClick = {
+                RoundIcon(Icons.Rounded.Share, tr(R.string.udostepnij), onClick = {
                     runCatching { MediaActions.share(context, s.uri, s.mime, s.name) }.onFailure { vm.toast = it.message }
                 })
                 Spacer(Modifier.width(8.dp))
-                RoundIcon(Icons.Rounded.Save, "Zapisz", onClick = {
+                RoundIcon(Icons.Rounded.Save, tr(R.string.zapisz), onClick = {
                     runCatching { MediaActions.save(context, s.uri, s.mime, s.name) }
-                        .onSuccess { vm.toast = "Zapisano w $it" }
-                        .onFailure { vm.toast = it.message ?: "Nie udało się zapisać" }
+                        .onSuccess { vm.toast = tr(R.string.zapisano_w_1, it) }
+                        .onFailure { vm.toast = it.message ?: tr(R.string.nie_udalo_sie_zapisac) }
                 })
                 Spacer(Modifier.width(8.dp))
-                RoundIcon(Icons.AutoMirrored.Rounded.OpenInNew, "Otwórz w innej aplikacji", onClick = { openExternal() })
+                RoundIcon(Icons.AutoMirrored.Rounded.OpenInNew, tr(R.string.otworz_w_innej_aplikacji), onClick = { openExternal() })
             }
         }
     }

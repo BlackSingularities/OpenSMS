@@ -1,5 +1,8 @@
 package com.blacksingularities.opensms.ui
 
+import com.blacksingularities.opensms.R
+import com.blacksingularities.opensms.tr
+
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.graphics.Brush
@@ -15,6 +18,7 @@ import android.util.Patterns
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -88,7 +92,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
@@ -130,6 +140,14 @@ import com.blacksingularities.opensms.ui.theme.Palette
 import com.blacksingularities.opensms.data.TimeMode
 import com.blacksingularities.opensms.util.Emoticons
 import com.blacksingularities.opensms.util.OneTimeCode
+import androidx.activity.compose.BackHandler
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.RadioButtonUnchecked
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import com.blacksingularities.opensms.util.Reactions
 import kotlinx.coroutines.delay
 import kotlin.math.roundToInt
 
@@ -143,6 +161,9 @@ fun ThreadScreen(vm: AppViewModel, s: Screen.Thread) {
     var confirmDeleteThread by remember { mutableStateOf(false) }
     var confirmDeleteMsg by remember { mutableStateOf<Message?>(null) }
     var confirmBlock by remember { mutableStateOf(false) }
+    var picked by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var confirmDeleteMany by remember { mutableStateOf<List<Message>>(emptyList()) }
+    val selecting = picked.isNotEmpty()
 
     val title = remember(s.addresses, vm.conversations) { Contacts.title(context, s.addresses) }
     val single = s.addresses.size == 1
@@ -150,7 +171,19 @@ fun ThreadScreen(vm: AppViewModel, s: Screen.Thread) {
     val threadId = s.threadId
     val item = vm.conversations.firstOrNull { it.conv.threadId == threadId }
     val messages = if (threadId != null && vm.openThreadId == threadId) vm.messages else emptyList()
-    val reversed = remember(messages) { messages.asReversed() }
+    // Reakcje SMS („Reacted 👍 to …”) przypinamy do wiadomości, których dotyczą, zamiast pokazywać jako dymki.
+    val showReactions = vm.settings.reactions
+    val reactions = remember(messages, showReactions) {
+        if (showReactions) {
+            Reactions.attach(messages, { it.body }, { it.key }, { !it.incoming }, { it.media.isNotEmpty() || it.pendingUrl != null })
+        } else {
+            Reactions.Attached(emptyMap(), emptySet())
+        }
+    }
+    val reversed = remember(messages, reactions) { messages.asReversed().filter { it.key !in reactions.hidden } }
+    // Zaznaczone wiadomości mogły zniknąć (usunięcie, nowa strona) – trzymamy tylko istniejące.
+    LaunchedEffect(messages) { picked = picked.filter { k -> messages.any { it.key == k } }.toSet() }
+    BackHandler(enabled = selecting) { picked = emptySet() }
     val listState = rememberLazyListState()
     val haptic = LocalHapticFeedback.current
 
@@ -181,9 +214,40 @@ fun ThreadScreen(vm: AppViewModel, s: Screen.Thread) {
     }
 
     Column(Modifier.fillMaxSize().background(Palette.Ink).screenPadding().imePadding()) {
+        // Pasek zaznaczenia: kopiowanie, przekazanie i usunięcie kilku wiadomości naraz.
+        if (selecting) {
+            val chosen = messages.filter { it.key in picked }
+            val joined = chosen.filter { it.body.isNotBlank() }.joinToString("\n\n") { it.body }
+            Row(Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = 2.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                RoundIcon(Icons.Rounded.Close, tr(R.string.anuluj_zaznaczenie), flat = true, onClick = { picked = emptySet() })
+                Text(
+                    tr(R.string.zaznaczono_1, picked.size),
+                    color = Color.White,
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f).padding(start = 8.dp),
+                )
+                if (joined.isNotEmpty()) {
+                    RoundIcon(Icons.Rounded.ContentCopy, tr(R.string.kopiuj), flat = true, onClick = {
+                        MediaActions.copy(context, joined)
+                        vm.toast = tr(R.string.skopiowano)
+                        picked = emptySet()
+                    })
+                }
+                RoundIcon(Icons.AutoMirrored.Rounded.Shortcut, tr(R.string.przekaz_dalej), flat = true, onClick = {
+                    val attachments = chosen.flatMap { m -> m.media.map { com.blacksingularities.opensms.data.Attachment(it.uri, it.contentType, it.name ?: "attachment") } }.take(10)
+                    picked = emptySet()
+                    vm.push(Screen.Compose(text = joined, attachments = attachments))
+                })
+                RoundIcon(Icons.Rounded.Delete, tr(R.string.usun), flat = true, onClick = {
+                    if (vm.settings.confirmDelete) confirmDeleteMany = chosen else vm.deleteMessages(chosen)
+                    picked = emptySet()
+                })
+            }
+        } else
         // Pasek rozmowy
         Row(Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = 2.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            RoundIcon(Icons.AutoMirrored.Rounded.ArrowBack, "Wstecz", flat = true, onClick = { vm.back() })
+            RoundIcon(Icons.AutoMirrored.Rounded.ArrowBack, tr(R.string.wstecz), flat = true, onClick = { vm.back() })
             Row(
                 Modifier.weight(1f).clip(RoundedCornerShape(50)).clickable { details = true }.padding(horizontal = 6.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
@@ -193,9 +257,9 @@ fun ThreadScreen(vm: AppViewModel, s: Screen.Thread) {
                     Text(title, color = Color.White, fontSize = 17.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(
                         when {
-                            !single -> plural(s.addresses.size, "osoba", "osoby", "osób")
+                            !single -> plural(s.addresses.size, tr(R.string.osoba), tr(R.string.osoby), tr(R.string.osob))
                             contact != null -> formatNumber(s.addresses[0])
-                            else -> "Nie ma w kontaktach"
+                            else -> tr(R.string.nie_ma_w_kontaktach)
                         },
                         color = Palette.TextDim,
                         fontSize = 12.sp,
@@ -204,11 +268,11 @@ fun ThreadScreen(vm: AppViewModel, s: Screen.Thread) {
                 }
             }
             if (single && s.addresses[0].any { it.isDigit() } && s.addresses[0].none { it.isLetter() }) {
-                RoundIcon(Icons.Rounded.Call, "Zadzwoń", flat = true, onClick = {
+                RoundIcon(Icons.Rounded.Call, tr(R.string.zadzwon), flat = true, onClick = {
                     runCatching { context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:" + s.addresses[0]))) }
                 })
             }
-            if (threadId != null) RoundIcon(Icons.Rounded.MoreVert, "Menu rozmowy", flat = true, onClick = { menu = true })
+            if (threadId != null) RoundIcon(Icons.Rounded.MoreVert, tr(R.string.menu_rozmowy), flat = true, onClick = { menu = true })
         }
 
         // Wiadomości
@@ -238,8 +302,8 @@ fun ThreadScreen(vm: AppViewModel, s: Screen.Thread) {
             if (threadId == null || (messages.isEmpty() && vm.openThreadId == threadId && item == null)) {
                 EmptyState(
                     Icons.Rounded.Person,
-                    "Nowa rozmowa",
-                    "Napisz pierwszą wiadomość do: ${s.addresses.joinToString(", ") { formatNumber(it) }}",
+                    tr(R.string.nowa_rozmowa),
+                    tr(R.string.napisz_pierwsza_do_1, s.addresses.joinToString(", ") { formatNumber(it) }),
                     Modifier.align(Alignment.Center),
                 )
             }
@@ -267,14 +331,18 @@ fun ThreadScreen(vm: AppViewModel, s: Screen.Thread) {
                             groupedWithOlder = groupedWith(m, older),
                             groupedWithNewer = groupedWith(m, newer),
                             showStatus = m.key == lastOutgoing || m.box == MsgBox.FAILED,
-                            onLongClick = { selected = m },
+                            reactions = reactions.byTarget[m.key].orEmpty(),
+                            selecting = selecting,
+                            isPicked = m.key in picked,
+                            onToggle = { picked = if (m.key in picked) picked - m.key else picked + m.key },
+                            onLongClick = { if (selecting) picked = picked + m.key else selected = m },
                         )
                     }
                 }
                 if (vm.canLoadMore && reversed.isNotEmpty()) {
                     item(key = "more") {
                         Box(Modifier.fillMaxWidth().padding(10.dp), contentAlignment = Alignment.Center) {
-                            PillButton("Wczytaj starsze", primary = false, onClick = { vm.loadMore() })
+                            PillButton(tr(R.string.wczytaj_starsze), primary = false, onClick = { vm.loadMore() })
                         }
                     }
                 }
@@ -300,12 +368,12 @@ fun ThreadScreen(vm: AppViewModel, s: Screen.Thread) {
         ActionSheet(title = title, onDismiss = { menu = false }) {
             if (single) {
                 if (contact != null) {
-                    ActionRow(Icons.Rounded.ContactPage, "Pokaż kontakt") {
+                    ActionRow(Icons.Rounded.ContactPage, tr(R.string.pokaz_kontakt)) {
                         menu = false
                         runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Contacts.contactUri(contact))) }
                     }
                 } else {
-                    ActionRow(Icons.Rounded.PersonAdd, "Dodaj do kontaktów") {
+                    ActionRow(Icons.Rounded.PersonAdd, tr(R.string.dodaj_do_kontaktow)) {
                         menu = false
                         runCatching {
                             context.startActivity(
@@ -316,23 +384,23 @@ fun ThreadScreen(vm: AppViewModel, s: Screen.Thread) {
                     }
                 }
             }
-            ActionRow(Icons.Rounded.Info, "Szczegóły rozmowy") { menu = false; details = true }
-            ActionRow(Icons.Rounded.PushPin, if (pinned) "Odepnij" else "Przypnij") {
+            ActionRow(Icons.Rounded.Info, tr(R.string.szczegoly_rozmowy)) { menu = false; details = true }
+            ActionRow(Icons.Rounded.PushPin, if (pinned) tr(R.string.odepnij) else tr(R.string.przypnij)) {
                 menu = false; vm.selection = setOf(threadId); vm.pinSelected()
             }
-            ActionRow(if (muted) Icons.Rounded.Notifications else Icons.Rounded.NotificationsOff, if (muted) "Włącz powiadomienia" else "Wycisz powiadomienia") {
+            ActionRow(if (muted) Icons.Rounded.Notifications else Icons.Rounded.NotificationsOff, if (muted) tr(R.string.wlacz_powiadomienia) else tr(R.string.wycisz_powiadomienia)) {
                 menu = false; vm.toggleMute(threadId)
             }
-            ActionRow(if (archived) Icons.Rounded.Unarchive else Icons.Rounded.Archive, if (archived) "Przywróć z archiwum" else "Archiwizuj") {
+            ActionRow(if (archived) Icons.Rounded.Unarchive else Icons.Rounded.Archive, if (archived) tr(R.string.przywroc_z_archiwum) else tr(R.string.archiwizuj)) {
                 menu = false; vm.archive(setOf(threadId), !archived); if (!archived) vm.back()
             }
-            ActionRow(Icons.Rounded.Block, "Zablokuj", danger = true) { menu = false; confirmBlock = true }
-            ActionRow(Icons.Rounded.Delete, "Usuń rozmowę", danger = true) { menu = false; confirmDeleteThread = true }
+            ActionRow(Icons.Rounded.Block, tr(R.string.zablokuj), danger = true) { menu = false; confirmBlock = true }
+            ActionRow(Icons.Rounded.Delete, tr(R.string.usun_rozmowe), danger = true) { menu = false; confirmDeleteThread = true }
         }
     }
 
     if (details) {
-        DarkDialog(title = "Szczegóły rozmowy", onDismiss = { details = false }, buttons = { PillButton("Zamknij", onClick = { details = false }) }) {
+        DarkDialog(title = tr(R.string.szczegoly_rozmowy), onDismiss = { details = false }, buttons = { PillButton(tr(R.string.zamknij), onClick = { details = false }) }) {
             s.addresses.forEach { a ->
                 val c = Contacts.lookup(context, a)
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
@@ -341,12 +409,12 @@ fun ThreadScreen(vm: AppViewModel, s: Screen.Thread) {
                         Text(c?.name ?: formatNumber(a), color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                         Text(formatNumber(a), color = Palette.TextDim, fontSize = 12.sp)
                     }
-                    RoundIcon(Icons.Rounded.ContentCopy, "Kopiuj numer", size = 36.dp, flat = true, onClick = { MediaActions.copy(context, a, "Numer"); vm.toast = "Skopiowano numer" })
+                    RoundIcon(Icons.Rounded.ContentCopy, tr(R.string.kopiuj_numer), size = 36.dp, flat = true, onClick = { MediaActions.copy(context, a, tr(R.string.numer)); vm.toast = tr(R.string.skopiowano_numer) })
                 }
             }
             if (item != null) {
                 Text(
-                    "${plural(item.conv.messageCount, "wiadomość", "wiadomości", "wiadomości")} · ostatnia ${formatFull(item.conv.date)}",
+                    tr(R.string.ostatnia_1, plural(item.conv.messageCount, tr(R.string.wiadomosc_2), tr(R.string.wiadomosci_2), tr(R.string.wiadomosci_2)), formatFull(item.conv.date)),
                     color = Palette.TextDim,
                     fontSize = 12.sp,
                 )
@@ -355,24 +423,40 @@ fun ThreadScreen(vm: AppViewModel, s: Screen.Thread) {
     }
 
     selected?.let { m ->
-        MessageActions(vm, m, onDismiss = { selected = null }, onInfo = { info = m }, onDelete = {
-            if (vm.settings.confirmDelete) confirmDeleteMsg = m else vm.deleteMessages(listOf(m))
-        })
+        MessageActions(
+            vm,
+            m,
+            canReact = threadId != null && s.addresses.any { canReplyTo(it) },
+            onReact = { emoji -> vm.sendQuick(s.addresses, reactionText(emoji, m.body), m.subId) },
+            onSelect = { picked = setOf(m.key) },
+            onDismiss = { selected = null },
+            onInfo = { info = m },
+            onDelete = { if (vm.settings.confirmDelete) confirmDeleteMsg = m else vm.deleteMessages(listOf(m)) },
+        )
     }
     info?.let { m -> MessageInfo(m) { info = null } }
+    if (confirmDeleteMany.isNotEmpty()) {
+        val list = confirmDeleteMany
+        ConfirmDialog(
+            tr(R.string.usunac_wiadomosci_1, list.size),
+            tr(R.string.wiadomosci_zostana_usuniete),
+            tr(R.string.usun),
+            onDismiss = { confirmDeleteMany = emptyList() },
+        ) { vm.deleteMessages(list) }
+    }
     confirmDeleteMsg?.let { m ->
-        ConfirmDialog("Usunąć wiadomość?", "Wiadomość zostanie usunięta z telefonu. Przez chwilę możesz to cofnąć.", "Usuń", onDismiss = { confirmDeleteMsg = null }) { vm.deleteMessages(listOf(m)) }
+        ConfirmDialog(tr(R.string.usunac_wiadomosc), tr(R.string.wiadomosc_zostanie_usunieta_z_telefonu), tr(R.string.usun), onDismiss = { confirmDeleteMsg = null }) { vm.deleteMessages(listOf(m)) }
     }
     if (confirmDeleteThread && threadId != null) {
-        ConfirmDialog("Usunąć rozmowę?", "Rozmowa trafi do kosza na ${AppViewModel.TRASH_DAYS} dni.", "Usuń", onDismiss = { confirmDeleteThread = false }) {
+        ConfirmDialog(tr(R.string.usunac_rozmowe), tr(R.string.rozmowa_trafi_do_kosza_na, AppViewModel.TRASH_DAYS), tr(R.string.usun), onDismiss = { confirmDeleteThread = false }) {
             vm.trashThreads(setOf(threadId))
         }
     }
     if (confirmBlock) {
         ConfirmDialog(
-            "Zablokować ${title}?",
-            "Nowe wiadomości od tego nadawcy nie będą pokazywane. Rozmowa trafi do archiwum.",
-            "Zablokuj",
+            tr(R.string.zablokowac_1, title),
+            tr(R.string.nowe_wiadomosci_od_tego_nadawcy),
+            tr(R.string.zablokuj),
             onDismiss = { confirmBlock = false },
         ) {
             vm.blockAddresses(s.addresses, setOfNotNull(threadId))
@@ -386,8 +470,8 @@ fun ThreadScreen(vm: AppViewModel, s: Screen.Thread) {
 private fun NoReplyNote(addresses: List<String>) {
     BottomNotice(
         Icons.Rounded.Block,
-        "Nie można odpowiedzieć",
-        "${addresses.joinToString(", ")} wysyła wiadomości z nazwy, a nie z numeru. Operator nie przyjmie odpowiedzi.",
+        tr(R.string.nie_mozna_odpowiedziec),
+        tr(R.string.nadawca_z_nazwy_1, addresses.joinToString(", ")),
     )
 }
 
@@ -436,7 +520,7 @@ internal fun ZoomIndicator(visible: Boolean, zoom: Float, modifier: Modifier, on
             Spacer(Modifier.width(6.dp))
             Text("${(zoom * 100).roundToInt()}%", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             if (zoom != 1f) {
-                Text("  ·  dotknij: 100%", color = Palette.TextDim, fontSize = 12.sp)
+                Text("  ·  " + tr(R.string.dotknij_100), color = Palette.TextDim, fontSize = 12.sp)
             }
         }
     }
@@ -476,6 +560,10 @@ private fun MessageBubble(
     groupedWithOlder: Boolean,
     groupedWithNewer: Boolean,
     showStatus: Boolean,
+    reactions: List<Reactions.Pick> = emptyList(),
+    selecting: Boolean = false,
+    isPicked: Boolean = false,
+    onToggle: () -> Unit = {},
     onLongClick: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -498,17 +586,39 @@ private fun MessageBubble(
     }
     val copyCode: () -> Unit = {
         if (code != null) {
-            MediaActions.copy(context, code, "Kod")
+            MediaActions.copy(context, code, tr(R.string.kod))
             if (vm.settings.haptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             copied = true
         }
     }
 
     Row(
-        Modifier.fillMaxWidth().padding(top = if (groupedWithNewer) style.dp(style.spacing.joined) else style.dp(style.spacing.gap)),
+        Modifier
+            .fillMaxWidth()
+            .padding(top = if (groupedWithNewer) style.dp(style.spacing.joined) else style.dp(style.spacing.gap))
+            // Tło bez przycinania – znaczek kopiowania kodu może wystawać poza dymek.
+            .background(if (isPicked) Color.White.copy(alpha = 0.10f) else Color.Transparent, RoundedCornerShape(14.dp))
+            .then(
+                if (selecting) {
+                    Modifier
+                        .clickable(onClick = onToggle)
+                        .semantics { selected = isPicked }
+                } else {
+                    Modifier
+                },
+            ),
         verticalAlignment = Alignment.Bottom,
         horizontalArrangement = if (out) Arrangement.End else Arrangement.Start,
     ) {
+        if (selecting) {
+            Icon(
+                if (isPicked) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked,
+                null,
+                tint = if (isPicked) Color.White else Palette.TextFaint,
+                modifier = Modifier.align(Alignment.CenterVertically).padding(start = 4.dp, end = 8.dp).size(22.dp),
+            )
+            if (out) Spacer(Modifier.weight(1f))
+        }
         // Awatar nadawcy w rozmowach grupowych: przy ostatnim dymku serii, wcześniej puste miejsce.
         if (showAvatar && m.incoming) {
             val avatarSize = style.dp(28f).coerceIn(20.dp, 44.dp)
@@ -528,6 +638,11 @@ private fun MessageBubble(
                     modifier = Modifier.padding(start = style.dp(12f), bottom = 2.dp),
                 )
             }
+            // Dymek jest przycinany do kształtu, więc znaczek kopiowania kodu rysujemy w nakładce
+            // nad nim — dzięki temu może wystawać poza krawędź dymka.
+            var bubbleOrigin by remember { mutableStateOf(Offset.Zero) }
+            var codeAnchor by remember(code) { mutableStateOf<Offset?>(null) }
+            Box(Modifier.onGloballyPositioned { bubbleOrigin = it.positionInRoot() }) {
             Column(
                 Modifier
                     .widthIn(max = maxWidth)
@@ -535,12 +650,24 @@ private fun MessageBubble(
                     .background(if (onlyEmoji) Color.Transparent else colors.background)
                     .then(if (colors.outline != null && !onlyEmoji) Modifier.border(1.dp, colors.outline, shape) else Modifier)
                     .combinedClickable(
-                        onClick = { if (failed) vm.retry(m) else expanded = !expanded },
+                        onClickLabel = if (failed) tr(R.string.wyslij_ponownie) else tr(R.string.pokaz_szczegoly),
+                        onLongClickLabel = tr(R.string.opcje_wiadomosci),
+                        onClick = {
+                            when {
+                                selecting -> onToggle()
+                                failed -> vm.retry(m)
+                                else -> expanded = !expanded
+                            }
+                        },
                         onLongClick = {
                             if (vm.settings.haptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                             onLongClick()
                         },
-                    ),
+                    )
+                    // Czytnik ekranu: kto i kiedy, zanim przeczyta treść dymka.
+                    .semantics {
+                        contentDescription = (if (out) tr(R.string.ty) else Contacts.displayName(context, m.address)) + ", " + formatTime(m.date)
+                    },
             ) {
                 if (m.pendingUrl != null) {
                     PendingMms(vm, m)
@@ -560,17 +687,27 @@ private fun MessageBubble(
                         text = body,
                         annotated = linkify(body, highlight, colors.lightBackground, code, copied, copyCode),
                         code = code,
-                        copied = copied,
                         style = style,
-                        dark = colors.lightBackground,
-                        bubble = colors.background,
                         color = colors.content,
                         fontSize = if (onlyEmoji) style.sp(40f) else style.sp(16f),
                         lineHeight = if (onlyEmoji) style.sp(46f) else style.sp(21f),
-                        onCopy = copyCode,
+                        onAnchor = { codeAnchor = it },
                     )
                 }
             }
+            val anchor = codeAnchor
+            if (code != null && anchor != null) {
+                CopyCodeBadge(
+                    center = anchor - bubbleOrigin,
+                    copied = copied,
+                    style = style,
+                    dark = colors.lightBackground,
+                    bubble = colors.background,
+                    onCopy = copyCode,
+                )
+            }
+            }
+            if (reactions.isNotEmpty()) ReactionChips(reactions, style)
             val showTime = when (style.timeMode) {
                 TimeMode.EVERY -> true
                 TimeMode.GROUP -> !groupedWithNewer
@@ -583,127 +720,235 @@ private fun MessageBubble(
     }
 }
 
+/** Reakcje pod dymkiem: emoji z licznikiem; własne reakcje są obwiedzione. */
+@Composable
+private fun ReactionChips(reactions: List<Reactions.Pick>, style: MessageStyle) {
+    val groups = reactions.groupBy { it.emoji }
+    val description = groups.entries.joinToString(", ") { (e, l) -> if (l.size > 1) "$e ${l.size}" else e }
+    Row(
+        Modifier
+            .padding(horizontal = style.dp(6f).coerceAtMost(10.dp), vertical = 2.dp)
+            .semantics(mergeDescendants = true) { contentDescription = tr(R.string.reakcje_1, description) },
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        groups.forEach { (emoji, list) ->
+            val mine = list.any { it.mine }
+            Row(
+                Modifier
+                    .clip(RoundedCornerShape(50))
+                    .background(Palette.PanelHigher)
+                    .then(if (mine) Modifier.border(1.dp, Color.White.copy(alpha = 0.5f), RoundedCornerShape(50)) else Modifier)
+                    .padding(horizontal = 7.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(emoji, fontSize = style.smallSp(13f))
+                if (list.size > 1) Text(" ${list.size}", color = Palette.TextDim, fontSize = style.smallSp(11f), fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
 /**
- * Treść dymka; przy kodzie jednorazowym w prawym górnym rogu samego kodu siedzi mały,
- * dyskretny znaczek kopiowania (dotknięcie kodu albo znaczka kopiuje, znaczek zmienia się w ✓).
+ * Treść dymka; przy kodzie jednorazowym zgłasza (w układzie okna) punkt prawego górnego rogu kodu,
+ * w którym nakładka dymka rysuje znaczek kopiowania.
  */
 @Composable
 private fun CodeAwareText(
     text: String,
     annotated: AnnotatedString,
     code: String?,
-    copied: Boolean,
     style: MessageStyle,
-    dark: Boolean,
-    bubble: Color,
     color: Color,
     fontSize: TextUnit,
     lineHeight: TextUnit,
-    onCopy: () -> Unit,
+    onAnchor: (Offset?) -> Unit,
 ) {
     var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
     val range = remember(text, code) { code?.let { findCodeRange(text, it) } }
     Box(Modifier.padding(horizontal = style.dp(14f), vertical = style.dp(9f))) {
-        Text(annotated, color = color, fontSize = fontSize, lineHeight = lineHeight, onTextLayout = { layout = it })
-        val l = layout
-        if (range != null && l != null && range.last < l.layoutInput.text.length) {
-            val d = style.dp(17f).coerceIn(14.dp, 24.dp)
-            val half = with(LocalDensity.current) { (d / 2).roundToPx() }
-            val box = l.getBoundingBox(range.last)
-            val top = l.getLineTop(l.getLineForOffset(range.last))
-            val ring by animateColorAsState(if (copied) Palette.Ok.copy(alpha = 0.6f) else if (dark) Color(0x22000000) else Color.White.copy(alpha = 0.16f), label = "codeRing")
-            val ink = if (copied) Palette.Ok else if (dark) Palette.Ink.copy(alpha = 0.55f) else Color.White.copy(alpha = 0.6f)
-            Box(
-                Modifier
-                    .offset { IntOffset(box.right.roundToInt() - half + half / 3, top.roundToInt() - half - half / 4) }
-                    .size(d)
-                    .clip(CircleShape)
-                    .background(bubble)
-                    .border(1.dp, ring, CircleShape)
-                    .clickable(onClickLabel = "Kopiuj kod", onClick = onCopy),
-                contentAlignment = Alignment.Center,
-            ) {
-                AnimatedContent(copied, transitionSpec = { (fadeIn() + scaleIn(initialScale = 0.6f)) togetherWith fadeOut() }, label = "codeIcon") { done ->
-                    Icon(
-                        if (done) Icons.Rounded.Check else Icons.Rounded.ContentCopy,
-                        if (done) "Skopiowano" else "Kopiuj kod",
-                        tint = ink,
-                        modifier = Modifier.size(d * 0.52f),
-                    )
+        Text(
+            annotated,
+            color = color,
+            fontSize = fontSize,
+            lineHeight = lineHeight,
+            onTextLayout = { layout = it },
+            modifier = Modifier.onGloballyPositioned { coords ->
+                val l = layout
+                if (range == null || l == null || range.last >= l.layoutInput.text.length) {
+                    onAnchor(null)
+                } else {
+                    val box = l.getBoundingBox(range.last)
+                    val top = l.getLineTop(l.getLineForOffset(range.last))
+                    onAnchor(coords.localToRoot(Offset(box.right, top)))
                 }
+            },
+        )
+    }
+}
+
+/**
+ * Znaczek kopiowania kodu: większy cel dotyku (niewidoczna otoczka), delikatny cień
+ * i obwódka; po skopiowaniu zmienia się w zielony ✓. Środek leży w [center] (względem dymka),
+ * więc znaczek może wystawać poza krawędź dymka.
+ */
+@Composable
+private fun CopyCodeBadge(
+    center: Offset,
+    copied: Boolean,
+    style: MessageStyle,
+    dark: Boolean,
+    bubble: Color,
+    onCopy: () -> Unit,
+) {
+    val d = style.dp(24f).coerceIn(22.dp, 32.dp)
+    val touch = d + 14.dp
+    val half = with(LocalDensity.current) { (touch / 2).roundToPx() }
+    val ring by animateColorAsState(
+        if (copied) Palette.Ok.copy(alpha = 0.7f) else if (dark) Color(0x2A000000) else Color.White.copy(alpha = 0.22f),
+        label = "codeRing",
+    )
+    val fill by animateColorAsState(if (copied) Palette.Ok.copy(alpha = 0.18f).compositeOver(bubble) else bubble, label = "codeFill")
+    val ink = if (copied) Palette.Ok else if (dark) Palette.Ink.copy(alpha = 0.7f) else Color.White.copy(alpha = 0.8f)
+    val press by animateFloatAsState(if (copied) 1.08f else 1f, label = "codeScale")
+    Box(
+        Modifier
+            .offset { IntOffset(center.x.roundToInt() - half + half / 5, center.y.roundToInt() - half) }
+            .size(touch)
+            .clip(CircleShape)
+            .clickable(onClickLabel = tr(R.string.kopiuj_kod), onClick = onCopy),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            Modifier
+                .graphicsLayer { scaleX = press; scaleY = press }
+                .size(d)
+                .shadow(3.dp, CircleShape)
+                .clip(CircleShape)
+                .background(fill)
+                .border(1.dp, ring, CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            AnimatedContent(copied, transitionSpec = { (fadeIn() + scaleIn(initialScale = 0.6f)) togetherWith fadeOut() }, label = "codeIcon") { done ->
+                Icon(
+                    if (done) Icons.Rounded.Check else Icons.Rounded.ContentCopy,
+                    if (done) tr(R.string.skopiowano) else tr(R.string.kopiuj_kod),
+                    tint = ink,
+                    modifier = Modifier.size(d * 0.55f),
+                )
             }
         }
     }
 }
 
-/** Próbka rozmowy do podglądu w ustawieniach – te same kształty, kolory i skala co w rozmowie. */
+/**
+ * Próbka rozmowy do podglądu w ustawieniach – te same kształty, kolory i skala co w rozmowie.
+ * Pokazuje każde ustawienie wyglądu: szerokość (długa wiadomość), odstępy, godzinę, nagłówek dnia,
+ * awatary w grupie, duże emoji, emotikony i znaczek kopiowania kodu.
+ */
 @Composable
 fun MessageStylePreview(style: MessageStyle, modifier: Modifier = Modifier) {
     BoxWithConstraints(modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Palette.Ink).padding(10.dp)) {
-        val max = (maxWidth * style.width.fraction).coerceAtLeast(140.dp)
+        val max = maxWidth * style.width.fraction
+        val now = remember { System.currentTimeMillis() }
         Column(Modifier.fillMaxWidth()) {
-            PreviewBubble(style, max, "Cześć! Wpadniesz dziś wieczorem?", out = false, older = false, newer = true)
-            PreviewBubble(style, max, "Będzie też Ola.", out = false, older = true, newer = false)
-            PreviewBubble(style, max, "Jasne, będę koło 19 🙂", out = true, older = false, newer = false)
+            if (style.dayHeaders) DayHeader(now, style)
+            PreviewBubble(style, max, tr(R.string.ola), tr(R.string.czesc_wpadniesz_dzis_wieczorem_robimy), out = false, older = false, newer = true, time = "18:02")
+            PreviewBubble(style, max, tr(R.string.ola), tr(R.string.bedzie_tez_kuba), out = false, older = true, newer = false, time = "18:02")
+            PreviewBubble(style, max, null, tr(R.string.jasne_bede_kolo_19_wezme), out = true, older = false, newer = true, time = "18:05")
+            PreviewBubble(style, max, null, "👍🎉", out = true, older = true, newer = false, time = "18:05")
             PreviewCodeBubble(style, max)
         }
     }
 }
 
-/** Dymek z kodem w podglądzie – ten sam wygląd co w rozmowie, łącznie ze znaczkiem kopiowania. */
+/** Dymek z kodem w podglądzie – ten sam wygląd co w rozmowie, łącznie z wystającym znaczkiem kopiowania. */
 @Composable
 private fun PreviewCodeBubble(style: MessageStyle, max: Dp) {
     val c = style.colors(false)
     val sh = style.shape(false, false, false)
-    val text = "Twój kod logowania: 482913"
+    val text = tr(R.string.twoj_kod_logowania_482913)
     var copied by remember { mutableStateOf(false) }
     LaunchedEffect(copied) { if (copied) { delay(1800); copied = false } }
-    Box(Modifier.fillMaxWidth().padding(top = style.dp(style.spacing.gap)), contentAlignment = Alignment.CenterStart) {
-        Box(
-            Modifier
-                .widthIn(max = max)
-                .clip(sh)
-                .background(c.background)
-                .then(if (c.outline != null) Modifier.border(1.dp, c.outline, sh) else Modifier),
-        ) {
-            CodeAwareText(
-                text = text,
-                annotated = linkify(text, null, c.lightBackground, "482913", copied) { copied = true },
-                code = "482913",
-                copied = copied,
-                style = style,
-                dark = c.lightBackground,
-                bubble = c.background,
+    var origin by remember { mutableStateOf(Offset.Zero) }
+    var anchor by remember { mutableStateOf<Offset?>(null) }
+    Column(Modifier.fillMaxWidth().padding(top = style.dp(style.spacing.gap))) {
+        Box(Modifier.onGloballyPositioned { origin = it.positionInRoot() }) {
+            Box(
+                Modifier
+                    .widthIn(max = max)
+                    .clip(sh)
+                    .background(c.background)
+                    .then(if (c.outline != null) Modifier.border(1.dp, c.outline, sh) else Modifier),
+            ) {
+                CodeAwareText(
+                    text = text,
+                    annotated = linkify(text, null, c.lightBackground, "482913", copied) { copied = true },
+                    code = "482913",
+                    style = style,
+                    color = c.content,
+                    fontSize = style.sp(16f),
+                    lineHeight = style.sp(21f),
+                    onAnchor = { anchor = it },
+                )
+            }
+            anchor?.let { CopyCodeBadge(it - origin, copied, style, c.lightBackground, c.background) { copied = true } }
+        }
+        if (style.timeMode != TimeMode.TAP) PreviewTime(style, "18:07", out = false)
+    }
+}
+
+@Composable
+private fun PreviewBubble(style: MessageStyle, max: Dp, sender: String?, raw: String, out: Boolean, older: Boolean, newer: Boolean, time: String) {
+    val c = style.colors(out)
+    val sh = style.shape(out, older, newer)
+    val text = remember(raw, style.emoticons) { if (style.emoticons) Emoticons.apply(raw) else raw }
+    val onlyEmoji = style.bigEmoji && text.length <= 12 && text.none { it.isLetterOrDigit() }
+    val avatar = style.senderAvatars && sender != null && !out
+    Row(
+        Modifier.fillMaxWidth().padding(top = if (older) style.dp(style.spacing.joined) else style.dp(style.spacing.gap)),
+        horizontalArrangement = if (out) Arrangement.End else Arrangement.Start,
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        val showTime = when (style.timeMode) {
+            TimeMode.EVERY -> true
+            TimeMode.GROUP -> !newer
+            TimeMode.TAP -> false
+        }
+        if (avatar) {
+            val size = style.dp(28f).coerceIn(20.dp, 44.dp)
+            Box(Modifier.padding(end = 6.dp, bottom = if (showTime) style.dp(20f).coerceAtMost(28.dp) else 0.dp).size(size)) {
+                if (!newer) Avatar(sender!!, null, size = size, colored = true)
+            }
+        }
+        Column(horizontalAlignment = if (out) Alignment.End else Alignment.Start) {
+            if (avatar && !older) {
+                Text(sender!!, color = Palette.TextDim, fontSize = style.smallSp(12f), modifier = Modifier.padding(start = style.dp(12f), bottom = 2.dp))
+            }
+            Text(
+                text,
                 color = c.content,
-                fontSize = style.sp(16f),
-                lineHeight = style.sp(21f),
-                onCopy = { copied = true },
+                fontSize = if (onlyEmoji) style.sp(40f) else style.sp(16f),
+                lineHeight = if (onlyEmoji) style.sp(46f) else style.sp(21f),
+                modifier = Modifier
+                    .widthIn(max = max)
+                    .clip(sh)
+                    .background(if (onlyEmoji) Color.Transparent else c.background)
+                    .then(if (c.outline != null && !onlyEmoji) Modifier.border(1.dp, c.outline, sh) else Modifier)
+                    .padding(horizontal = style.dp(14f), vertical = style.dp(9f)),
             )
+            if (showTime) PreviewTime(style, time, out)
         }
     }
 }
 
 @Composable
-private fun PreviewBubble(style: MessageStyle, max: Dp, text: String, out: Boolean, older: Boolean, newer: Boolean) {
-    val c = style.colors(out)
-    val sh = style.shape(out, older, newer)
-    Box(
-        Modifier.fillMaxWidth().padding(top = if (older) style.dp(style.spacing.joined) else style.dp(style.spacing.gap)),
-        contentAlignment = if (out) Alignment.CenterEnd else Alignment.CenterStart,
-    ) {
-        Text(
-            text,
-            color = c.content,
-            fontSize = style.sp(16f),
-            lineHeight = style.sp(21f),
-            modifier = Modifier
-                .widthIn(max = max)
-                .clip(sh)
-                .background(c.background)
-                .then(if (c.outline != null) Modifier.border(1.dp, c.outline, sh) else Modifier)
-                .padding(horizontal = style.dp(14f), vertical = style.dp(9f)),
-        )
-    }
+private fun PreviewTime(style: MessageStyle, time: String, out: Boolean) {
+    Text(
+        if (out) tr(R.string.dostarczono_1, time) else time,
+        color = Palette.TextFaint,
+        fontSize = style.smallSp(11f),
+        modifier = Modifier.padding(horizontal = style.dp(8f).coerceAtMost(12.dp), vertical = 3.dp),
+    )
 }
 
 @Composable
@@ -711,14 +956,14 @@ private fun StatusLine(vm: AppViewModel, m: Message, full: Boolean, style: Messa
     val sim = if (vm.settings.showSimBadge && vm.sims.size > 1) vm.sims.firstOrNull { it.subId == m.subId }?.let { "SIM ${it.slot + 1}" } else null
     val (text, color) = when {
         m.incoming -> formatTime(m.date) to Palette.TextFaint
-        m.box == MsgBox.FAILED -> "Nie wysłano · dotknij, aby ponowić" to Palette.Record
-        m.box == MsgBox.OUTBOX && vm.isFailedOrStuck(m) -> "Wysyłanie trwa długo · przytrzymaj, aby ponowić" to Palette.Record
-        m.box == MsgBox.OUTBOX -> "Wysyłanie…" to Palette.TextFaint
+        m.box == MsgBox.FAILED -> tr(R.string.nie_wyslano_dotknij_aby_ponowic) to Palette.Record
+        m.box == MsgBox.OUTBOX && vm.isFailedOrStuck(m) -> tr(R.string.wysylanie_trwa_dlugo_przytrzymaj_aby) to Palette.Record
+        m.box == MsgBox.OUTBOX -> tr(R.string.wysylanie_2) to Palette.TextFaint
         !full -> formatTime(m.date) to Palette.TextFaint
-        m.delivery == Delivery.DELIVERED -> "Dostarczono · ${formatTime(m.date)}" to Palette.TextDim
-        m.delivery == Delivery.FAILED -> "Nie doręczono · ${formatTime(m.date)}" to Palette.Record
-        m.delivery == Delivery.PENDING -> "Wysłano · ${formatTime(m.date)}" to Palette.TextFaint
-        else -> "Wysłano · ${formatTime(m.date)}" to Palette.TextFaint
+        m.delivery == Delivery.DELIVERED -> tr(R.string.dostarczono_1, formatTime(m.date)) to Palette.TextDim
+        m.delivery == Delivery.FAILED -> tr(R.string.nie_doreczono_1, formatTime(m.date)) to Palette.Record
+        m.delivery == Delivery.PENDING -> tr(R.string.wyslano_1, formatTime(m.date)) to Palette.TextFaint
+        else -> tr(R.string.wyslano_1, formatTime(m.date)) to Palette.TextFaint
     }
     Row(Modifier.padding(horizontal = style.dp(8f).coerceAtMost(12.dp), vertical = 3.dp), verticalAlignment = Alignment.CenterVertically) {
         if (m.box == MsgBox.FAILED) Icon(Icons.Rounded.Error, null, tint = Palette.Record, modifier = Modifier.size(13.dp).padding(end = 2.dp))
@@ -738,14 +983,14 @@ private fun PendingMms(vm: AppViewModel, m: Message) {
             }
         }
         Column(Modifier.padding(horizontal = 12.dp)) {
-            Text("Wiadomość MMS", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text(tr(R.string.wiadomosc_mms), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             Text(
-                if (downloading) "Pobieranie…" else listOfNotNull(m.sizeBytes.takeIf { it > 0 }?.let(::formatSize), "dotknij, aby pobrać").joinToString(" · "),
+                if (downloading) tr(R.string.pobieranie) else listOfNotNull(m.sizeBytes.takeIf { it > 0 }?.let(::formatSize), tr(R.string.dotknij_aby_pobrac)).joinToString(" · "),
                 color = Palette.TextDim,
                 fontSize = 12.sp,
             )
         }
-        if (!downloading) PillButton("Pobierz", onClick = { vm.downloadMms(m) })
+        if (!downloading) PillButton(tr(R.string.pobierz), onClick = { vm.downloadMms(m) })
     }
 }
 
@@ -772,7 +1017,7 @@ private fun MediaPart(vm: AppViewModel, m: Message, part: MmsPart, style: Messag
                 }
                 if (part.isVideo) {
                     Box(Modifier.size(52.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.6f)), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Rounded.PlayArrow, "Odtwórz", tint = Color.White, modifier = Modifier.size(32.dp))
+                        Icon(Icons.Rounded.PlayArrow, tr(R.string.odtworz), tint = Color.White, modifier = Modifier.size(32.dp))
                     }
                 }
             }
@@ -804,9 +1049,9 @@ private fun MediaPart(vm: AppViewModel, m: Message, part: MmsPart, style: Messag
                 Column(Modifier.padding(start = 10.dp).widthIn(max = (maxWidth - 70.dp).coerceAtLeast(100.dp))) {
                     Text(
                         when {
-                            part.isAudio -> "Nagranie"
-                            part.isVcard -> "Wizytówka"
-                            else -> "Plik"
+                            part.isAudio -> tr(R.string.nagranie)
+                            part.isVcard -> tr(R.string.wizytowka)
+                            else -> tr(R.string.plik)
                         },
                         color = if (out) Palette.Ink else Color.White,
                         fontWeight = FontWeight.Bold,
@@ -891,73 +1136,112 @@ private fun findCodeRange(text: String, code: String): IntRange? {
 }
 
 @Composable
-private fun MessageActions(vm: AppViewModel, m: Message, onDismiss: () -> Unit, onInfo: () -> Unit, onDelete: () -> Unit) {
+private fun MessageActions(
+    vm: AppViewModel,
+    m: Message,
+    canReact: Boolean,
+    onReact: (String) -> Unit,
+    onSelect: () -> Unit,
+    onDismiss: () -> Unit,
+    onInfo: () -> Unit,
+    onDelete: () -> Unit,
+) {
     val context = LocalContext.current
     val code = remember(m.body) { OneTimeCode.find(m.body) }
-    ActionSheet(title = m.body.take(120).ifEmpty { if (m.media.isNotEmpty()) "Załącznik MMS" else null }, onDismiss = onDismiss) {
+    ActionSheet(title = m.body.take(120).ifEmpty { if (m.media.isNotEmpty()) tr(R.string.zalacznik_mms) else null }, onDismiss = onDismiss) {
+        if (canReact && m.body.isNotBlank() && m.box != MsgBox.FAILED) {
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+            ) {
+                REACTION_EMOJI.forEach { emoji ->
+                    Box(
+                        Modifier
+                            .size(46.dp)
+                            .clip(CircleShape)
+                            .background(Palette.PanelHigher)
+                            .clickable(onClickLabel = tr(R.string.zareaguj_1, emoji)) { onDismiss(); onReact(emoji) }
+                            .semantics { contentDescription = tr(R.string.zareaguj_1, emoji) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(emoji, fontSize = 22.sp)
+                    }
+                }
+            }
+        }
+        ActionRow(Icons.Rounded.CheckCircle, tr(R.string.zaznacz)) { onDismiss(); onSelect() }
         if (m.body.isNotEmpty()) {
-            ActionRow(Icons.Rounded.ContentCopy, "Kopiuj tekst") { onDismiss(); MediaActions.copy(context, m.body); vm.toast = "Skopiowano" }
+            ActionRow(Icons.Rounded.ContentCopy, tr(R.string.kopiuj_tekst)) { onDismiss(); MediaActions.copy(context, m.body); vm.toast = tr(R.string.skopiowano) }
         }
         if (code != null) {
-            ActionRow(Icons.Rounded.Key, "Kopiuj kod $code") { onDismiss(); MediaActions.copy(context, code, "Kod"); vm.toast = "Skopiowano kod" }
+            ActionRow(Icons.Rounded.Key, tr(R.string.kopiuj_kod_1, code)) { onDismiss(); MediaActions.copy(context, code, tr(R.string.kod)); vm.toast = tr(R.string.skopiowano_kod) }
         }
         if (m.box == MsgBox.FAILED || vm.isFailedOrStuck(m)) {
-            ActionRow(Icons.Rounded.Refresh, "Wyślij ponownie") { onDismiss(); vm.retry(m) }
+            ActionRow(Icons.Rounded.Refresh, tr(R.string.wyslij_ponownie)) { onDismiss(); vm.retry(m) }
         }
-        ActionRow(Icons.AutoMirrored.Rounded.Shortcut, "Przekaż dalej") {
+        ActionRow(Icons.AutoMirrored.Rounded.Shortcut, tr(R.string.przekaz_dalej)) {
             onDismiss()
             val attachments = m.media.map { com.blacksingularities.opensms.data.Attachment(it.uri, it.contentType, it.name ?: "zalacznik") }
             vm.push(Screen.Compose(text = m.body, attachments = attachments))
         }
         if (m.body.isNotEmpty()) {
-            ActionRow(Icons.Rounded.Share, "Udostępnij") { onDismiss(); MediaActions.shareText(context, m.body) }
+            ActionRow(Icons.Rounded.Share, tr(R.string.udostepnij)) { onDismiss(); MediaActions.shareText(context, m.body) }
         }
         m.media.forEach { p ->
-            ActionRow(Icons.Rounded.Save, "Zapisz " + (if (p.isImage) "zdjęcie" else if (p.isVideo) "film" else "plik"), p.name) {
+            ActionRow(Icons.Rounded.Save, tr(R.string.zapisz_2) + (if (p.isImage) tr(R.string.zdjecie_3) else if (p.isVideo) tr(R.string.film_lc) else tr(R.string.plik_lc)), p.name) {
                 onDismiss()
                 runCatching { MediaActions.save(context, p.uri, p.contentType, p.name) }
-                    .onSuccess { vm.toast = "Zapisano w $it" }
-                    .onFailure { vm.toast = it.message ?: "Nie udało się zapisać" }
+                    .onSuccess { vm.toast = tr(R.string.zapisano_w_1, it) }
+                    .onFailure { vm.toast = it.message ?: tr(R.string.nie_udalo_sie_zapisac) }
             }
         }
-        ActionRow(Icons.Rounded.Info, "Szczegóły") { onDismiss(); onInfo() }
-        ActionRow(Icons.Rounded.Delete, "Usuń", danger = true) { onDismiss(); onDelete() }
+        ActionRow(Icons.Rounded.Info, tr(R.string.szczegoly)) { onDismiss(); onInfo() }
+        ActionRow(Icons.Rounded.Delete, tr(R.string.usun), danger = true) { onDismiss(); onDelete() }
     }
+}
+
+private val REACTION_EMOJI = listOf("👍", "❤️", "😂", "😮", "😢", "🙏")
+
+/** Treść reakcji w formacie rozpoznawanym przez inne aplikacje (cytat przycięty jak w Google Messages). */
+private fun reactionText(emoji: String, body: String): String {
+    val oneLine = body.replace('\n', ' ').trim()
+    val quote = if (oneLine.length > 60) oneLine.take(60).trimEnd() + "…" else oneLine
+    return tr(R.string.reakcja_tekst, emoji, quote)
 }
 
 @Composable
 private fun MessageInfo(m: Message, onDismiss: () -> Unit) {
     val context = LocalContext.current
-    DarkDialog(title = "Szczegóły wiadomości", onDismiss = onDismiss, buttons = { PillButton("Zamknij", onClick = onDismiss) }) {
-        InfoRow(Icons.Rounded.Info, "Rodzaj", if (m.isMms) "MMS" else "SMS")
+    DarkDialog(title = tr(R.string.szczegoly_wiadomosci), onDismiss = onDismiss, buttons = { PillButton(tr(R.string.zamknij), onClick = onDismiss) }) {
+        InfoRow(Icons.Rounded.Info, tr(R.string.rodzaj), if (m.isMms) "MMS" else "SMS")
         InfoRow(
             Icons.Rounded.Person,
-            if (m.incoming) "Od" else "Do",
+            if (m.incoming) tr(R.string.od) else tr(R.string.do_3),
             Contacts.displayName(context, m.address) + if (Contacts.isKnown(context, m.address)) " (${formatNumber(m.address)})" else "",
         )
-        if (m.incoming && m.dateSent > 0) InfoRow(Icons.Rounded.Info, "Wysłano", formatFull(m.dateSent))
-        InfoRow(Icons.Rounded.Info, if (m.incoming) "Odebrano" else "Utworzono", formatFull(m.date))
+        if (m.incoming && m.dateSent > 0) InfoRow(Icons.Rounded.Info, tr(R.string.wyslano), formatFull(m.dateSent))
+        InfoRow(Icons.Rounded.Info, if (m.incoming) tr(R.string.odebrano) else tr(R.string.utworzono), formatFull(m.date))
         InfoRow(
             Icons.Rounded.Info,
-            "Stan",
+            tr(R.string.stan),
             when (m.box) {
-                MsgBox.INBOX -> if (m.read) "Przeczytana" else "Nieprzeczytana"
+                MsgBox.INBOX -> if (m.read) tr(R.string.przeczytana) else tr(R.string.nieprzeczytana)
                 MsgBox.SENT -> when (m.delivery) {
-                    Delivery.DELIVERED -> "Dostarczona"
-                    Delivery.PENDING -> "Wysłana, czeka na raport doręczenia"
-                    Delivery.FAILED -> "Nie doręczona"
-                    Delivery.NONE -> "Wysłana"
+                    Delivery.DELIVERED -> tr(R.string.dostarczona)
+                    Delivery.PENDING -> tr(R.string.wyslana_czeka_na_raport_doreczenia)
+                    Delivery.FAILED -> tr(R.string.nie_doreczona)
+                    Delivery.NONE -> tr(R.string.wyslana)
                 }
-                MsgBox.OUTBOX -> "W trakcie wysyłania"
-                MsgBox.FAILED -> "Błąd wysyłania"
-                MsgBox.DRAFT -> "Szkic"
+                MsgBox.OUTBOX -> tr(R.string.w_trakcie_wysylania)
+                MsgBox.FAILED -> tr(R.string.blad_wysylania)
+                MsgBox.DRAFT -> tr(R.string.szkic_2)
             },
         )
         if (!m.isMms && m.body.isNotEmpty()) {
             val calc = android.telephony.SmsMessage.calculateLength(m.body, false)
-            InfoRow(Icons.Rounded.Info, "Długość", "${m.body.length} znaków · ${plural(calc[0], "część", "części", "części")} SMS")
+            InfoRow(Icons.Rounded.Info, tr(R.string.dlugosc), tr(R.string.znakow_czesci_1, m.body.length, plural(calc[0], tr(R.string.czesc_one), tr(R.string.czesc_few), tr(R.string.czesc_many))))
         }
-        if (m.isMms && m.sizeBytes > 0) InfoRow(Icons.Rounded.Info, "Rozmiar", formatSize(m.sizeBytes))
-        if (m.media.isNotEmpty()) InfoRow(Icons.AutoMirrored.Rounded.InsertDriveFile, "Załączniki", m.media.joinToString(", ") { it.name ?: it.contentType })
+        if (m.isMms && m.sizeBytes > 0) InfoRow(Icons.Rounded.Info, tr(R.string.rozmiar), formatSize(m.sizeBytes))
+        if (m.media.isNotEmpty()) InfoRow(Icons.AutoMirrored.Rounded.InsertDriveFile, tr(R.string.zalaczniki_2), m.media.joinToString(", ") { it.name ?: it.contentType })
     }
 }

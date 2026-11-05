@@ -1,5 +1,8 @@
 package com.blacksingularities.opensms.data
 
+import com.blacksingularities.opensms.R
+import com.blacksingularities.opensms.tr
+
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.compose.runtime.MutableState
@@ -10,40 +13,50 @@ import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
 /** Rozmiar tekstu wiadomości. */
-enum class TextSize(val label: String, val scale: Float) {
-    SMALL("Mały", 0.88f),
-    NORMAL("Zwykły", 1f),
-    LARGE("Duży", 1.15f),
-    HUGE("Bardzo duży", 1.32f),
+enum class TextSize(private val labelRes: Int, val scale: Float) {
+    SMALL(R.string.maly, 0.88f),
+    NORMAL(R.string.zwykly, 1f),
+    LARGE(R.string.duzy, 1.15f),
+    HUGE(R.string.bardzo_duzy, 1.32f);
+
+    val label: String get() = tr(labelRes)
 }
 
 /** Maksymalna szerokość dymka jako ułamek szerokości ekranu. */
-enum class BubbleWidth(val label: String, val fraction: Float) {
-    NARROW("Wąskie", 0.7f),
-    NORMAL("Zwykłe", 0.8f),
-    WIDE("Szerokie", 0.92f),
+enum class BubbleWidth(private val labelRes: Int, val fraction: Float) {
+    NARROW(R.string.waskie, 0.7f),
+    NORMAL(R.string.zwykle, 0.8f),
+    WIDE(R.string.szerokie, 0.92f);
+
+    val label: String get() = tr(labelRes)
 }
 
 /** Kolor własnych (wysłanych) dymków. */
-enum class BubbleTint(val label: String) {
-    WHITE("Biały"),
-    SILVER("Srebrny"),
-    GRAPHITE("Grafit"),
-    OUTLINE("Kontur"),
+enum class BubbleTint(private val labelRes: Int) {
+    WHITE(R.string.bialy),
+    SILVER(R.string.srebrny),
+    GRAPHITE(R.string.grafit),
+    OUTLINE(R.string.kontur);
+
+    val label: String get() = tr(labelRes)
 }
 
 /** Odstępy między wiadomościami (dp): między seriami i wewnątrz serii. */
-enum class BubbleSpacing(val label: String, val gap: Float, val joined: Float) {
-    COMPACT("Ciasno", 4f, 1f),
-    NORMAL("Zwykle", 7f, 2f),
-    AIRY("Luźno", 12f, 3f),
+enum class BubbleSpacing(private val labelRes: Int, val gap: Float, val joined: Float) {
+    COMPACT(R.string.ciasno, 4f, 1f),
+    NORMAL(R.string.zwykle_2, 7f, 2f),
+    AIRY(R.string.luzno, 12f, 3f);
+
+    val label: String get() = tr(labelRes)
 }
 
 /** Kiedy pokazywać godzinę pod wiadomością. */
-enum class TimeMode(val label: String) {
-    GROUP("Pod serią"),
-    EVERY("Pod każdą"),
-    TAP("Po dotknięciu"),
+enum class TimeMode(private val labelRes: Int) {
+    GROUP(R.string.pod_seria),
+    EVERY(R.string.pod_kazda),
+    TAP(R.string.po_dotknieciu);
+
+    val label: String get() = tr(labelRes)
 }
 
 /** Limit rozmiaru MMS – zdjęcia są zmniejszane, żeby zmieścić się w limicie operatora. */
@@ -54,12 +67,14 @@ enum class MmsLimit(val label: String, val bytes: Int) {
 }
 
 /** Akcja przesunięcia rozmowy w bok na liście. */
-enum class SwipeAction(val label: String) {
-    NONE("Brak"),
-    ARCHIVE("Archiwizuj"),
-    READ("Przeczytane"),
-    PIN("Przypnij"),
-    DELETE("Usuń"),
+enum class SwipeAction(private val labelRes: Int) {
+    NONE(R.string.brak),
+    ARCHIVE(R.string.archiwizuj),
+    READ(R.string.przeczytane),
+    PIN(R.string.przypnij),
+    DELETE(R.string.usun);
+
+    val label: String get() = tr(labelRes)
 }
 
 data class Template(val id: Long, val text: String)
@@ -111,6 +126,8 @@ class Settings private constructor(context: Context) {
     var emoticons by boolPref("emoticons", true)
     var dayHeaders by boolPref("dayHeaders", true)
     var senderAvatars by boolPref("senderAvatars", false)
+    /** Reakcje SMS („Reacted 👍 to …”) jako emoji pod wiadomością zamiast osobnych dymków. */
+    var reactions by boolPref("reactions", true)
 
     // Wysyłanie
     var deliveryReports by boolPref("deliveryReports", false)
@@ -137,6 +154,12 @@ class Settings private constructor(context: Context) {
     var keepBlockedLog by boolPref("keepBlockedLog", true)
     var blockedNumbers by stringSetPref("blockedNumbers")
     var blockedKeywords by stringSetPref("blockedKeywords")
+    /** Automatyczne zatrzymywanie podejrzanych wiadomości od nieznanych nadawców. */
+    var spamFilter by boolPref("spamFilter", true)
+    /** Odblokowanie aplikacji odciskiem palca, twarzą albo PIN-em ekranu blokady. */
+    var appLock by boolPref("appLock", false)
+    /** Treść wiadomości widoczna na ekranie blokady (domyślnie ukryta). */
+    var lockScreenContent by boolPref("lockScreenContent", false)
 
     // Rozmowy
     var pinned by stringSetPref("pinned")
@@ -348,10 +371,10 @@ class Settings private constructor(context: Context) {
             instance ?: synchronized(this) { instance ?: Settings(context.applicationContext).also { instance = it } }
 
         val DEFAULT_TEMPLATES = listOf(
-            "Oddzwonię za chwilę.",
-            "Jestem w drodze.",
-            "Nie mogę teraz rozmawiać, napiszę później.",
-            "Dzięki!",
+            tr(R.string.oddzwonie_za_chwile),
+            tr(R.string.jestem_w_drodze),
+            tr(R.string.nie_moge_teraz_rozmawiac_napisze),
+            tr(R.string.dzieki),
             "OK 👍",
         )
     }

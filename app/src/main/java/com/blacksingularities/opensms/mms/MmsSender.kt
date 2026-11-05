@@ -1,5 +1,8 @@
 package com.blacksingularities.opensms.mms
 
+import com.blacksingularities.opensms.R
+import com.blacksingularities.opensms.tr
+
 import android.app.PendingIntent
 import android.content.ContentValues
 import android.content.Context
@@ -54,7 +57,7 @@ object MmsSender {
             parts = parts,
             read = true,
             subId = subId,
-        ) ?: error("Nie można zapisać MMS")
+        ) ?: error(tr(R.string.nie_mozna_zapisac_mms))
         dispatch(context, mmsUri, transactionId, recipients, subject, parts, subId)
         return threadId
     }
@@ -137,9 +140,9 @@ object MmsSender {
                 mime = "image/jpeg"
                 name = name.substringBeforeLast('.') + ".jpg"
             } else {
-                raw = context.contentResolver.openInputStream(a.uri)?.use { it.readBytes() } ?: error("Nie można odczytać załącznika")
+                raw = context.contentResolver.openInputStream(a.uri)?.use { it.readBytes() } ?: error(tr(R.string.nie_mozna_odczytac_zalacznika))
                 mime = a.mime
-                if (raw.size > budget + 4096) error("Załącznik „${a.name}” jest za duży na MMS (${raw.size / 1024} KB)")
+                if (raw.size > budget + 4096) error(tr(R.string.zalacznik_1_jest_za_duzy, a.name, raw.size / 1024))
             }
             budget -= raw.size
             media += Pdu.Part(mime, raw, name = name, contentId = name, contentLocation = name)

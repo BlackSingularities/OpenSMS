@@ -19,6 +19,7 @@
     <uses-permission android:name="android.permission.READ_PHONE_NUMBERS" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <!-- MMS (przez sieć komórkową) i aktualizacje z GitHub Releases. -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -43,13 +44,14 @@
         android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
+        android:localeConfig="@xml/locales_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.OpenSMS">
 
         <activity
             android:name=".MainActivity"
-            android:configChanges="locale|layoutDirection|orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize|uiMode|density"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize|uiMode|density"
             android:exported="true"
             android:launchMode="singleTask"
             android:resizeableActivity="true"
@@ -91,6 +93,10 @@
                 <data android:mimeType="image/*" />
                 <data android:mimeType="video/*" />
             </intent-filter>
+            <!-- Skróty rozmów: sekcja „Rozmowy” w systemie i bezpośrednie udostępnianie. -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
 
         <!-- Odbiór SMS (tylko domyślna aplikacja dostaje SMS_DELIVER). -->

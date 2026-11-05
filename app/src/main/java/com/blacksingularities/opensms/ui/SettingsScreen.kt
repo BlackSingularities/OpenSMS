@@ -1,5 +1,8 @@
 package com.blacksingularities.opensms.ui
 
+import com.blacksingularities.opensms.R
+import com.blacksingularities.opensms.tr
+
 import androidx.compose.ui.text.style.TextAlign
 import android.content.Intent
 import android.net.Uri
@@ -26,6 +29,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AddReaction
+import androidx.compose.material.icons.rounded.Fingerprint
+import androidx.compose.material.icons.rounded.ScreenLockPortrait
+import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.Email
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Send
@@ -140,16 +147,16 @@ import kotlin.math.roundToInt
 @Composable
 fun SettingsScreen(vm: AppViewModel, page: SettingsPage, onRequestPermissions: () -> Unit) {
     val title = when (page) {
-        SettingsPage.MAIN -> "Ustawienia"
-        SettingsPage.BLOCKED -> "Zablokowane"
-        SettingsPage.BLOCKED_LOG -> "Zatrzymane wiadomości"
-        SettingsPage.TEMPLATES -> "Szablony"
-        SettingsPage.SCHEDULED -> "Zaplanowane"
-        SettingsPage.STATS -> "Statystyki"
+        SettingsPage.MAIN -> tr(R.string.ustawienia)
+        SettingsPage.BLOCKED -> tr(R.string.zablokowane)
+        SettingsPage.BLOCKED_LOG -> tr(R.string.zatrzymane_wiadomosci)
+        SettingsPage.TEMPLATES -> tr(R.string.szablony)
+        SettingsPage.SCHEDULED -> tr(R.string.zaplanowane)
+        SettingsPage.STATS -> tr(R.string.statystyki)
     }
     Column(Modifier.fillMaxSize().background(Palette.Ink).screenPadding().imePadding()) {
         Row(Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = 2.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            RoundIcon(Icons.AutoMirrored.Rounded.ArrowBack, "Wstecz", flat = true, onClick = { vm.back() })
+            RoundIcon(Icons.AutoMirrored.Rounded.ArrowBack, tr(R.string.wstecz), flat = true, onClick = { vm.back() })
             Text(title, fontSize = 22.sp, fontWeight = FontWeight.Black, color = Color.White, modifier = Modifier.padding(start = 6.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
@@ -177,26 +184,26 @@ fun SettingsScreen(vm: AppViewModel, page: SettingsPage, onRequestPermissions: (
 }
 
 private fun swipeShort(a: SwipeAction) = when (a) {
-    SwipeAction.NONE -> "Brak"
-    SwipeAction.ARCHIVE -> "Archiw."
-    SwipeAction.READ -> "Czytane"
-    SwipeAction.PIN -> "Przypnij"
-    SwipeAction.DELETE -> "Usuń"
+    SwipeAction.NONE -> tr(R.string.brak)
+    SwipeAction.ARCHIVE -> tr(R.string.archiw)
+    SwipeAction.READ -> tr(R.string.czytane)
+    SwipeAction.PIN -> tr(R.string.przypnij)
+    SwipeAction.DELETE -> tr(R.string.usun)
 }
 
 /** Wygląd dymków w rozmowie – z podglądem, który od razu pokazuje każdą zmianę. */
 @Composable
 private fun ConversationLookGroup(vm: AppViewModel) {
     val s = vm.settings
-    Group("Wygląd rozmowy") {
+    Group(tr(R.string.wyglad_rozmowy)) {
         MessageStylePreview(MessageStyle.from(s), Modifier.padding(start = 10.dp, end = 10.dp, top = 4.dp, bottom = 6.dp))
         Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RowIcon(Icons.Rounded.ZoomIn)
                 Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                    Text("Powiększenie dymków", fontSize = 15.sp, color = Color.White)
+                    Text(tr(R.string.powiekszenie_dymkow), fontSize = 15.sp, color = Color.White)
                     Text(
-                        "${(s.bubbleZoom * 100).roundToInt()}% · w rozmowie zmienisz je też dwoma palcami",
+                        tr(R.string.s_1_w_rozmowie_zmienisz_je, (s.bubbleZoom * 100).roundToInt()),
                         fontSize = 12.sp,
                         lineHeight = 16.sp,
                         color = Palette.TextDim,
@@ -212,17 +219,17 @@ private fun ConversationLookGroup(vm: AppViewModel) {
                 colors = SliderDefaults.colors(thumbColor = Color.White, activeTrackColor = Color.White, inactiveTrackColor = Palette.PanelHigher),
             )
         }
-        SwitchRow(Icons.Rounded.TouchApp, "Powiększanie dwoma palcami", "W rozmowie i na liście rozmów – rozsuń palce, żeby powiększyć, zsuń, żeby pomniejszyć", s.pinchZoom) { s.pinchZoom = it }
-        CompactChoice(Icons.Rounded.ColorLens, "Kolor moich wiadomości", BubbleTint.entries, s.bubbleTint, { it.label }) { s.bubbleTint = it }
+        SwitchRow(Icons.Rounded.TouchApp, tr(R.string.powiekszanie_dwoma_palcami), tr(R.string.w_rozmowie_i_na_liscie), s.pinchZoom) { s.pinchZoom = it }
+        CompactChoice(Icons.Rounded.ColorLens, tr(R.string.kolor_moich_wiadomosci), BubbleTint.entries, s.bubbleTint, { it.label }) { s.bubbleTint = it }
         Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RowIcon(Icons.Rounded.RoundedCorner)
                 Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                    Text("Zaokrąglenie dymków", fontSize = 15.sp, color = Color.White)
+                    Text(tr(R.string.zaokraglenie_dymkow), fontSize = 15.sp, color = Color.White)
                     Text(
                         when {
-                            s.bubbleRadius <= 0f -> "Kanciaste rogi"
-                            s.bubbleRadius >= 28f -> "Maksymalnie okrągłe · 28 dp"
+                            s.bubbleRadius <= 0f -> tr(R.string.kanciaste_rogi)
+                            s.bubbleRadius >= 28f -> tr(R.string.maksymalnie_okragle_28_dp)
                             else -> "${s.bubbleRadius.roundToInt()} dp"
                         },
                         fontSize = 12.sp,
@@ -230,7 +237,7 @@ private fun ConversationLookGroup(vm: AppViewModel) {
                         color = Palette.TextDim,
                     )
                 }
-                if (s.bubbleRadius != 22f) PillButton("Domyślne", primary = false, onClick = { s.bubbleRadius = 22f })
+                if (s.bubbleRadius != 22f) PillButton(tr(R.string.domyslne), primary = false, onClick = { s.bubbleRadius = 22f })
             }
             Slider(
                 value = s.bubbleRadius,
@@ -241,13 +248,14 @@ private fun ConversationLookGroup(vm: AppViewModel) {
                 colors = SliderDefaults.colors(thumbColor = Color.White, activeTrackColor = Color.White, inactiveTrackColor = Palette.PanelHigher),
             )
         }
-        CompactChoice(Icons.Rounded.AspectRatio, "Szerokość dymków", BubbleWidth.entries, s.bubbleWidth, { it.label }) { s.bubbleWidth = it }
-        CompactChoice(Icons.Rounded.FormatLineSpacing, "Odstępy", BubbleSpacing.entries, s.bubbleSpacing, { it.label }) { s.bubbleSpacing = it }
-        CompactChoice(Icons.Rounded.AccessTime, "Godzina wiadomości", TimeMode.entries, s.timeMode, { it.label }) { s.timeMode = it }
-        SwitchRow(Icons.Rounded.EmojiEmotions, "Duże emoji", "Wiadomość z samych emoji bez dymka, w dużym rozmiarze", s.bigEmoji) { s.bigEmoji = it }
-        SwitchRow(Icons.Rounded.Mood, "Emotikony jako emoji", "„:)”, „;)”, „<3” i podobne pokazują się jako emoji – też w środku zdania", s.emoticons) { s.emoticons = it }
-        SwitchRow(Icons.Rounded.CalendarToday, "Nagłówki dni", "„Dzisiaj”, „Wczoraj” i daty między wiadomościami", s.dayHeaders) { s.dayHeaders = it }
-        SwitchRow(Icons.Rounded.AccountCircle, "Awatary w grupach", "Zdjęcie nadawcy przy wiadomościach w rozmowach grupowych", s.senderAvatars) { s.senderAvatars = it }
+        CompactChoice(Icons.Rounded.AspectRatio, tr(R.string.szerokosc_dymkow), BubbleWidth.entries, s.bubbleWidth, { it.label }) { s.bubbleWidth = it }
+        CompactChoice(Icons.Rounded.FormatLineSpacing, tr(R.string.odstepy), BubbleSpacing.entries, s.bubbleSpacing, { it.label }) { s.bubbleSpacing = it }
+        CompactChoice(Icons.Rounded.AccessTime, tr(R.string.godzina_wiadomosci), TimeMode.entries, s.timeMode, { it.label }) { s.timeMode = it }
+        SwitchRow(Icons.Rounded.EmojiEmotions, tr(R.string.duze_emoji), tr(R.string.wiadomosc_z_samych_emoji_bez), s.bigEmoji) { s.bigEmoji = it }
+        SwitchRow(Icons.Rounded.Mood, tr(R.string.emotikony_jako_emoji), tr(R.string.s_3_i_podobne_pokazuja_sie), s.emoticons) { s.emoticons = it }
+        SwitchRow(Icons.Rounded.CalendarToday, tr(R.string.naglowki_dni), tr(R.string.dzisiaj_wczoraj_i_daty_miedzy), s.dayHeaders) { s.dayHeaders = it }
+        SwitchRow(Icons.Rounded.AccountCircle, tr(R.string.awatary_w_grupach), tr(R.string.zdjecie_nadawcy_przy_wiadomosciach_w), s.senderAvatars) { s.senderAvatars = it }
+        SwitchRow(Icons.Rounded.AddReaction, tr(R.string.reakcje_jako_emoji), tr(R.string.reakcje_jako_emoji_opis), s.reactions) { s.reactions = it }
     }
 }
 
@@ -265,7 +273,7 @@ private fun ColumnScope.MainSettings(vm: AppViewModel, onRequestPermissions: () 
             backupProgress = 0f
             val r = withContext(Dispatchers.IO) { runCatching { Backup.export(context, uri) } }
             backupProgress = null
-            vm.toast = r.fold({ "Zapisano kopię: ${plural(it, "wiadomość", "wiadomości", "wiadomości")}" }, { it.message ?: "Błąd zapisu" })
+            vm.toast = r.fold({ tr(R.string.zapisano_kopie_1, plural(it, tr(R.string.wiadomosc_2), tr(R.string.wiadomosci_2), tr(R.string.wiadomosci_2))) }, { it.message ?: tr(R.string.blad_zapisu) })
         }
     }
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -274,15 +282,15 @@ private fun ColumnScope.MainSettings(vm: AppViewModel, onRequestPermissions: () 
             backupProgress = 0f
             val r = withContext(Dispatchers.IO) { runCatching { Backup.import(context, uri) { p -> backupProgress = p } } }
             backupProgress = null
-            vm.toast = r.fold({ "Przywrócono ${it.added} z ${it.total} (pozostałe już były w telefonie)" }, { it.message ?: "Błąd odczytu" })
+            vm.toast = r.fold({ tr(R.string.przywrocono_1_z_2_pozostale, it.added, it.total) }, { it.message ?: tr(R.string.blad_odczytu) })
             vm.reload()
         }
     }
 
     UpdateBanner(vm)
 
-    Group("Wygląd") {
-        CompactChoice(Icons.Rounded.FontDownload, "Rozmiar tekstu wiadomości", TextSize.entries, s.textSize, { it.label }, short = {
+    Group(tr(R.string.wyglad)) {
+        CompactChoice(Icons.Rounded.FontDownload, tr(R.string.rozmiar_tekstu_wiadomosci), TextSize.entries, s.textSize, { it.label }, short = {
             when (it) {
                 TextSize.SMALL -> "S"
                 TextSize.NORMAL -> "M"
@@ -290,50 +298,51 @@ private fun ColumnScope.MainSettings(vm: AppViewModel, onRequestPermissions: () 
                 TextSize.HUGE -> "XL"
             }
         }) { s.textSize = it }
-        SwitchRow(Icons.Rounded.FormatColorFill, "Kolorowe awatary", "Inicjały na kolorowym tle zamiast szarego", s.colorAvatars) { s.colorAvatars = it }
-        SwitchRow(Icons.Rounded.AccessTime, "Czas względny", "„5 min” zamiast godziny dla najnowszych rozmów", s.relativeTimes) { s.relativeTimes = it }
-        SwitchRow(Icons.Rounded.SimCard, "Oznaczenie karty SIM", "Przy wiadomościach, gdy w telefonie są dwie karty", s.showSimBadge) { s.showSimBadge = it }
-        SwitchRow(Icons.Rounded.Vibration, "Wibracja przycisków", "Przy przytrzymaniu i przesuwaniu rozmów", s.haptics) { s.haptics = it }
+        SwitchRow(Icons.Rounded.FormatColorFill, tr(R.string.kolorowe_awatary), tr(R.string.inicjaly_na_kolorowym_tle_zamiast), s.colorAvatars) { s.colorAvatars = it }
+        SwitchRow(Icons.Rounded.AccessTime, tr(R.string.czas_wzgledny), tr(R.string.s_5_min_zamiast_godziny_dla), s.relativeTimes) { s.relativeTimes = it }
+        SwitchRow(Icons.Rounded.SimCard, tr(R.string.oznaczenie_karty_sim), tr(R.string.przy_wiadomosciach_gdy_w_telefonie), s.showSimBadge) { s.showSimBadge = it }
+        SwitchRow(Icons.Rounded.Vibration, tr(R.string.wibracja_przyciskow), tr(R.string.przy_przytrzymaniu_i_przesuwaniu_rozmow), s.haptics) { s.haptics = it }
     }
 
     ConversationLookGroup(vm)
 
-    Group("Gesty na liście") {
-        CompactChoice(Icons.Rounded.SwipeRight, "Przesunięcie w prawo", SwipeAction.entries, s.swipeRight, { it.label }, short = { swipeShort(it) }) { s.swipeRight = it }
-        CompactChoice(Icons.Rounded.SwipeLeft, "Przesunięcie w lewo", SwipeAction.entries, s.swipeLeft, { it.label }, short = { swipeShort(it) }) { s.swipeLeft = it }
-        InfoRow(Icons.Rounded.TouchApp, "Przełączanie kart", "Przesuń palcem w bok po pustym miejscu listy")
-        if (s.listZoom != 1f) ActionRow(Icons.Rounded.ZoomIn, "Powiększenie listy: ${(s.listZoom * 100).roundToInt()}%", "Dotknij, aby wrócić do 100%") { s.listZoom = 1f }
+    Group(tr(R.string.gesty_na_liscie)) {
+        CompactChoice(Icons.Rounded.SwipeRight, tr(R.string.przesuniecie_w_prawo), SwipeAction.entries, s.swipeRight, { it.label }, short = { swipeShort(it) }) { s.swipeRight = it }
+        CompactChoice(Icons.Rounded.SwipeLeft, tr(R.string.przesuniecie_w_lewo), SwipeAction.entries, s.swipeLeft, { it.label }, short = { swipeShort(it) }) { s.swipeLeft = it }
+        InfoRow(Icons.Rounded.TouchApp, tr(R.string.przelaczanie_kart), tr(R.string.przesun_palcem_w_bok_po))
+        if (s.listZoom != 1f) ActionRow(Icons.Rounded.ZoomIn, tr(R.string.powiekszenie_listy_1, (s.listZoom * 100).roundToInt()), tr(R.string.dotknij_aby_wrocic_do_100)) { s.listZoom = 1f }
     }
 
-    Group("Wysyłanie") {
-        SwitchRow(Icons.Rounded.DoneAll, "Raporty doręczenia", "Informacja „Dostarczono” pod wysłanym SMS", s.deliveryReports) { s.deliveryReports = it }
-        ActionRow(Icons.Rounded.Draw, "Podpis", s.signature.ifBlank { "Brak – dotknij, aby dodać" }) { signatureDialog = true }
-        SwitchRow(Icons.AutoMirrored.Rounded.KeyboardReturn, "Enter wysyła", "Klawisz Enter wysyła zamiast nowej linii", s.enterSends) { s.enterSends = it }
-        SwitchRow(Icons.Rounded.Spellcheck, "Bez polskich znaków", "Zamienia ą→a, ł→l… – SMS mieści 160 zamiast 70 znaków", s.stripAccents) { s.stripAccents = it }
-        SwitchRow(Icons.Rounded.Groups, "Rozmowy grupowe jako MMS", "Wyłączone: osobny SMS do każdego odbiorcy", s.groupAsMms) { s.groupAsMms = it }
-        SwitchRow(Icons.Rounded.Image, "Długie wiadomości jako MMS", "Zamiast wielu części SMS", s.longAsMms) { s.longAsMms = it }
+    Group(tr(R.string.wysylanie)) {
+        SwitchRow(Icons.Rounded.DoneAll, tr(R.string.raporty_doreczenia), tr(R.string.informacja_dostarczono_pod_wyslanym_sms), s.deliveryReports) { s.deliveryReports = it }
+        ActionRow(Icons.Rounded.Draw, tr(R.string.podpis), s.signature.ifBlank { tr(R.string.brak_dotknij_aby_dodac) }) { signatureDialog = true }
+        SwitchRow(Icons.AutoMirrored.Rounded.KeyboardReturn, tr(R.string.enter_wysyla), tr(R.string.klawisz_enter_wysyla_zamiast_nowej), s.enterSends) { s.enterSends = it }
+        SwitchRow(Icons.Rounded.Spellcheck, tr(R.string.bez_polskich_znakow), tr(R.string.zamienia_aa_ll_sms_miesci), s.stripAccents) { s.stripAccents = it }
+        SwitchRow(Icons.Rounded.Groups, tr(R.string.rozmowy_grupowe_jako_mms), tr(R.string.wylaczone_osobny_sms_do_kazdego), s.groupAsMms) { s.groupAsMms = it }
+        SwitchRow(Icons.Rounded.Image, tr(R.string.dlugie_wiadomosci_jako_mms), tr(R.string.zamiast_wielu_czesci_sms), s.longAsMms) { s.longAsMms = it }
         if (s.longAsMms) {
-            CompactChoice(Icons.AutoMirrored.Rounded.TextSnippet, "Próg zamiany na MMS", listOf(2, 3, 4, 6, 8), s.longAsMmsSegments, { "powyżej ${plural(it, "części", "części", "części")}" }, short = { it.toString() }) {
+            CompactChoice(Icons.AutoMirrored.Rounded.TextSnippet, tr(R.string.prog_zamiany_na_mms), listOf(2, 3, 4, 6, 8), s.longAsMmsSegments, { tr(R.string.powyzej_1, plural(it, tr(R.string.czesc_one), tr(R.string.czesc_few), tr(R.string.czesc_many))) }, short = { it.toString() }) {
                 s.longAsMmsSegments = it
             }
         }
-        CompactChoice(Icons.Rounded.Image, "Limit rozmiaru MMS", MmsLimit.entries, s.mmsLimit, { it.label }, hint = "zdjęcia są zmniejszane") { s.mmsLimit = it }
-        SwitchRow(Icons.Rounded.CloudDownload, "Automatyczne pobieranie MMS", "Wyłączone: MMS pobierasz przyciskiem w rozmowie", s.autoDownloadMms) { s.autoDownloadMms = it }
+        CompactChoice(Icons.Rounded.Image, tr(R.string.limit_rozmiaru_mms), MmsLimit.entries, s.mmsLimit, { it.label }, hint = tr(R.string.zdjecia_sa_zmniejszane)) { s.mmsLimit = it }
+        SwitchRow(Icons.Rounded.CloudDownload, tr(R.string.automatyczne_pobieranie_mms), tr(R.string.wylaczone_mms_pobierasz_przyciskiem_w), s.autoDownloadMms) { s.autoDownloadMms = it }
         if (vm.sims.size > 1) {
             val options = listOf(-1) + vm.sims.map { it.subId }
-            CompactChoice(Icons.Rounded.SimCard, "Domyślna karta SIM", options, if (s.defaultSubId in options) s.defaultSubId else -1, { id ->
-                vm.sims.firstOrNull { it.subId == id }?.let { "SIM ${it.slot + 1} · ${it.name}" } ?: "Jak w systemie"
-            }, short = { id -> vm.sims.firstOrNull { it.subId == id }?.let { "SIM ${it.slot + 1}" } ?: "System" }) { s.defaultSubId = it }
+            CompactChoice(Icons.Rounded.SimCard, tr(R.string.domyslna_karta_sim), options, if (s.defaultSubId in options) s.defaultSubId else -1, { id ->
+                vm.sims.firstOrNull { it.subId == id }?.let { "SIM ${it.slot + 1} · ${it.name}" } ?: tr(R.string.jak_w_systemie)
+            }, short = { id -> vm.sims.firstOrNull { it.subId == id }?.let { "SIM ${it.slot + 1}" } ?: tr(R.string.system) }) { s.defaultSubId = it }
         }
     }
 
-    Group("Powiadomienia") {
-        SwitchRow(Icons.Rounded.Notifications, "Powiadomienia", null, s.notifications) { s.notifications = it }
-        SwitchRow(Icons.Rounded.Visibility, "Treść w powiadomieniu", "Wyłączone: tylko „Nowa wiadomość”", s.notificationPreview, enabled = s.notifications) { s.notificationPreview = it }
-        SwitchRow(Icons.Rounded.Key, "Kopiowanie kodów", "Przycisk „Kopiuj 123456” przy kodach SMS", s.copyCodeAction) { s.copyCodeAction = it }
-        SwitchRow(Icons.Rounded.TaskAlt, "Odpowiedź oznacza przeczytane", null, s.markReadOnReply) { s.markReadOnReply = it }
-        SwitchRow(Icons.Rounded.Warning, "Błędy wysyłania", "Powiadomienie, gdy wiadomość nie dojdzie", s.notifyFailures) { s.notifyFailures = it }
-        ActionRow(Icons.Rounded.NotificationsActive, "Dźwięk i wibracje", "Ustawienia kanału powiadomień w systemie") {
+    Group(tr(R.string.powiadomienia)) {
+        SwitchRow(Icons.Rounded.Notifications, tr(R.string.powiadomienia), null, s.notifications) { s.notifications = it }
+        SwitchRow(Icons.Rounded.Visibility, tr(R.string.tresc_w_powiadomieniu), tr(R.string.wylaczone_tylko_nowa_wiadomosc), s.notificationPreview, enabled = s.notifications) { s.notificationPreview = it }
+        SwitchRow(Icons.Rounded.ScreenLockPortrait, tr(R.string.tresc_na_ekranie_blokady), tr(R.string.tresc_na_ekranie_blokady_opis), s.lockScreenContent, enabled = s.notifications && s.notificationPreview) { s.lockScreenContent = it }
+        SwitchRow(Icons.Rounded.Key, tr(R.string.kopiowanie_kodow), tr(R.string.przycisk_kopiuj_123456_przy_kodach), s.copyCodeAction) { s.copyCodeAction = it }
+        SwitchRow(Icons.Rounded.TaskAlt, tr(R.string.odpowiedz_oznacza_przeczytane), null, s.markReadOnReply) { s.markReadOnReply = it }
+        SwitchRow(Icons.Rounded.Warning, tr(R.string.bledy_wysylania), tr(R.string.powiadomienie_gdy_wiadomosc_nie_dojdzie), s.notifyFailures) { s.notifyFailures = it }
+        ActionRow(Icons.Rounded.NotificationsActive, tr(R.string.dzwiek_i_wibracje), tr(R.string.ustawienia_kanalu_powiadomien_w_systemie)) {
             runCatching {
                 context.startActivity(
                     Intent(AndroidSettings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
@@ -344,32 +353,45 @@ private fun ColumnScope.MainSettings(vm: AppViewModel, onRequestPermissions: () 
         }
     }
 
-    Group("Prywatność i filtry") {
-        ActionRow(Icons.Rounded.Block, "Zablokowane numery i słowa", "${s.blockedNumbers.size} numerów · ${s.blockedKeywords.size} słów") {
+    Group(tr(R.string.prywatnosc_i_filtry)) {
+        ActionRow(Icons.Rounded.Block, tr(R.string.zablokowane_numery_i_slowa), tr(R.string.s_1_numerow_2_slow, s.blockedNumbers.size, s.blockedKeywords.size)) {
             vm.push(Screen.SettingsScreen(SettingsPage.BLOCKED))
         }
-        SwitchRow(Icons.Rounded.PersonOff, "Blokuj nieznanych", "Wiadomości spoza kontaktów trafiają do zatrzymanych", s.blockUnknown) { s.blockUnknown = it }
-        ActionRow(Icons.Rounded.History, "Zatrzymane wiadomości", plural(s.blockedLog.size, "wiadomość", "wiadomości", "wiadomości")) {
+        SwitchRow(Icons.Rounded.Shield, tr(R.string.filtr_spamu), tr(R.string.filtr_spamu_opis), s.spamFilter) { s.spamFilter = it }
+        SwitchRow(Icons.Rounded.PersonOff, tr(R.string.blokuj_nieznanych), tr(R.string.wiadomosci_spoza_kontaktow_trafiaja_do), s.blockUnknown) { s.blockUnknown = it }
+        SwitchRow(Icons.Rounded.Fingerprint, tr(R.string.blokada_aplikacji), tr(R.string.blokada_aplikacji_opis), s.appLock) { on ->
+            val secure = context.getSystemService(android.app.KeyguardManager::class.java)?.isDeviceSecure == true
+            if (on && !secure) {
+                vm.toast = tr(R.string.ustaw_blokade_ekranu)
+            } else {
+                s.appLock = on
+                (context as? android.app.Activity)?.window?.let { w ->
+                    if (on) w.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                    else w.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
+                }
+            }
+        }
+        ActionRow(Icons.Rounded.History, tr(R.string.zatrzymane_wiadomosci), plural(s.blockedLog.size, tr(R.string.wiadomosc_2), tr(R.string.wiadomosci_2), tr(R.string.wiadomosci_2))) {
             vm.push(Screen.SettingsScreen(SettingsPage.BLOCKED_LOG))
         }
-        SwitchRow(Icons.Rounded.Delete, "Pytaj przed usunięciem", null, s.confirmDelete) { s.confirmDelete = it }
+        SwitchRow(Icons.Rounded.Delete, tr(R.string.pytaj_przed_usunieciem), null, s.confirmDelete) { s.confirmDelete = it }
     }
 
-    Group("Narzędzia") {
-        ActionRow(Icons.AutoMirrored.Rounded.ShortText, "Szablony odpowiedzi", plural(s.templates.size, "szablon", "szablony", "szablonów")) {
+    Group(tr(R.string.narzedzia)) {
+        ActionRow(Icons.AutoMirrored.Rounded.ShortText, tr(R.string.szablony_odpowiedzi), plural(s.templates.size, tr(R.string.szablon), tr(R.string.szablony_few), tr(R.string.szablonow))) {
             vm.push(Screen.SettingsScreen(SettingsPage.TEMPLATES))
         }
-        ActionRow(Icons.Rounded.Schedule, "Zaplanowane wiadomości", plural(s.scheduled.size, "wiadomość", "wiadomości", "wiadomości")) {
+        ActionRow(Icons.Rounded.Schedule, tr(R.string.zaplanowane_wiadomosci), plural(s.scheduled.size, tr(R.string.wiadomosc_2), tr(R.string.wiadomosci_2), tr(R.string.wiadomosci_2))) {
             vm.push(Screen.SettingsScreen(SettingsPage.SCHEDULED))
         }
-        ActionRow(Icons.Rounded.BarChart, "Statystyki", "Ile piszesz, z kim i kiedy") {
+        ActionRow(Icons.Rounded.BarChart, tr(R.string.statystyki), tr(R.string.ile_piszesz_z_kim_i)) {
             vm.loadStats(); vm.push(Screen.SettingsScreen(SettingsPage.STATS))
         }
-        ActionRow(Icons.Rounded.Upload, "Eksportuj SMS do pliku", "Kopia zapasowa w formacie JSON") {
+        ActionRow(Icons.Rounded.Upload, tr(R.string.eksportuj_sms_do_pliku), tr(R.string.kopia_zapasowa_w_formacie_json)) {
             val stamp = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
             exportLauncher.launch("OpenSMS-kopia-$stamp.json")
         }
-        ActionRow(Icons.Rounded.Download, "Importuj SMS z pliku", "Pomija wiadomości, które już są w telefonie") {
+        ActionRow(Icons.Rounded.Download, tr(R.string.importuj_sms_z_pliku), tr(R.string.pomija_wiadomosci_ktore_juz_sa)) {
             importLauncher.launch(arrayOf("application/json", "application/octet-stream", "text/plain"))
         }
         backupProgress?.let { p ->
@@ -377,47 +399,47 @@ private fun ColumnScope.MainSettings(vm: AppViewModel, onRequestPermissions: () 
         }
     }
 
-    Group("Aktualizacje") {
-        SwitchRow(Icons.Rounded.SystemUpdate, "Sprawdzaj przy starcie", "Nowe wersje aplikacji", s.autoUpdateCheck) { s.autoUpdateCheck = it }
+    Group(tr(R.string.aktualizacje)) {
+        SwitchRow(Icons.Rounded.SystemUpdate, tr(R.string.sprawdzaj_przy_starcie), tr(R.string.nowe_wersje_aplikacji), s.autoUpdateCheck) { s.autoUpdateCheck = it }
         val status = when (val u = vm.update) {
-            is UpdateState.Checking -> "Sprawdzanie…"
-            is UpdateState.UpToDate -> "Masz najnowszą wersję"
-            is UpdateState.Available -> "Dostępna wersja ${u.info.version}"
-            is UpdateState.Downloading -> "Pobieranie…"
-            is UpdateState.Ready, is UpdateState.Installing -> "Instalowanie…"
+            is UpdateState.Checking -> tr(R.string.sprawdzanie)
+            is UpdateState.UpToDate -> tr(R.string.masz_najnowsza_wersje)
+            is UpdateState.Available -> tr(R.string.dostepna_wersja_1, u.info.version)
+            is UpdateState.Downloading -> tr(R.string.pobieranie)
+            is UpdateState.Ready, is UpdateState.Installing -> tr(R.string.instalowanie)
             is UpdateState.Failed -> u.message
-            UpdateState.Idle -> if (s.lastUpdateCheck > 0) "Ostatnio: ${formatFull(s.lastUpdateCheck).substringBeforeLast(':')}" else "Jeszcze nie sprawdzano"
+            UpdateState.Idle -> if (s.lastUpdateCheck > 0) tr(R.string.ostatnio_1, formatFull(s.lastUpdateCheck).substringBeforeLast(':')) else tr(R.string.jeszcze_nie_sprawdzano)
         }
-        ActionRow(Icons.Rounded.Restore, "Sprawdź teraz", status) { vm.checkUpdate(silent = false) }
-        InfoRow(Icons.Rounded.Code, "Wersja", UpdateManager.currentVersion)
+        ActionRow(Icons.Rounded.Restore, tr(R.string.sprawdz_teraz), status) { vm.checkUpdate(silent = false) }
+        InfoRow(Icons.Rounded.Code, tr(R.string.wersja), UpdateManager.currentVersion)
     }
 
     Group("O aplikacji") {
-        ActionRow(Icons.Rounded.Person, "Pomysł i wykonanie", "Adam Rędzikowski · redzikowski.com") {
+        ActionRow(Icons.Rounded.Person, tr(R.string.pomysl_i_wykonanie), "Adam Rędzikowski · redzikowski.com") {
             runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://redzikowski.com"))) }
         }
-        ActionRow(Icons.Rounded.Email, "Kontakt", "kontakt@redzikowski.com") {
+        ActionRow(Icons.Rounded.Email, tr(R.string.kontakt), "kontakt@redzikowski.com") {
             runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("mailto:kontakt@redzikowski.com"))) }
         }
-        ActionRow(Icons.Rounded.LocalCafe, "Postaw kawę", "Wesprzyj rozwój na buycoffee.to") {
+        ActionRow(Icons.Rounded.LocalCafe, tr(R.string.postaw_kawe), tr(R.string.wesprzyj_rozwoj_na_buycoffee_to)) {
             runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://buycoffee.to/adamredzikowski"))) }
         }
     }
 
-    Group("System") {
-        ActionRow(Icons.Rounded.Security, "Uprawnienia", "Kontakty, karty SIM, powiadomienia") { onRequestPermissions() }
-        ActionRow(Icons.Rounded.AdminPanelSettings, "Ustawienia aplikacji w systemie") {
+    Group(tr(R.string.system)) {
+        ActionRow(Icons.Rounded.Security, tr(R.string.uprawnienia), tr(R.string.kontakty_karty_sim_powiadomienia)) { onRequestPermissions() }
+        ActionRow(Icons.Rounded.AdminPanelSettings, tr(R.string.ustawienia_aplikacji_w_systemie)) {
             runCatching {
                 context.startActivity(Intent(AndroidSettings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:" + context.packageName)))
             }
         }
-        ActionRow(Icons.Rounded.Schedule, "Dokładne alarmy", if (Scheduler.canExact(context)) "Włączone – zaplanowane wysyłają się co do minuty" else "Wyłączone – wysyłka może się opóźnić") {
+        ActionRow(Icons.Rounded.Schedule, tr(R.string.dokladne_alarmy), if (Scheduler.canExact(context)) tr(R.string.wlaczone_zaplanowane_wysylaja_sie_co) else tr(R.string.wylaczone_wysylka_moze_sie_opoznic)) {
             runCatching { context.startActivity(Intent(AndroidSettings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:" + context.packageName))) }
         }
     }
 
     Text(
-        "OpenSMS ${UpdateManager.currentVersion} · otwarte oprogramowanie (MIT)\nWiadomości zostają w telefonie – aplikacja łączy się z internetem tylko po aktualizacje.",
+        tr(R.string.opensms_1_otwarte_oprogramowanie_mit, UpdateManager.currentVersion),
         color = Palette.TextFaint,
         fontSize = 11.sp,
         lineHeight = 15.sp,
@@ -428,15 +450,15 @@ private fun ColumnScope.MainSettings(vm: AppViewModel, onRequestPermissions: () 
     if (signatureDialog) {
         var text by remember { mutableStateOf(s.signature) }
         DarkDialog(
-            title = "Podpis",
+            title = tr(R.string.podpis),
             onDismiss = { signatureDialog = false },
             buttons = {
-                PillButton("Anuluj", primary = false, onClick = { signatureDialog = false })
-                PillButton("Zapisz", onClick = { s.signature = text.trim(); signatureDialog = false })
+                PillButton(tr(R.string.anuluj), primary = false, onClick = { signatureDialog = false })
+                PillButton(tr(R.string.zapisz), onClick = { s.signature = text.trim(); signatureDialog = false })
             },
         ) {
-            Text("Dopisywany na końcu każdej wysyłanej wiadomości.", color = Palette.TextDim, fontSize = 13.sp)
-            DarkField(text, { text = it }, "Podpis", singleLine = false, minLines = 2)
+            Text(tr(R.string.dopisywany_na_koncu_kazdej_wysylanej), color = Palette.TextDim, fontSize = 13.sp)
+            DarkField(text, { text = it }, tr(R.string.podpis), singleLine = false, minLines = 2)
         }
     }
 }
@@ -446,38 +468,38 @@ private fun ColumnScope.BlockedPage(vm: AppViewModel) {
     val s = vm.settings
     var number by remember { mutableStateOf("") }
     var keyword by remember { mutableStateOf("") }
-    Group("Numery") {
+    Group(tr(R.string.numery)) {
         Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            DarkField(number, { number = it }, "Numer lub nazwa nadawcy", modifier = Modifier.weight(1f))
+            DarkField(number, { number = it }, tr(R.string.numer_lub_nazwa_nadawcy), modifier = Modifier.weight(1f))
             Spacer(Modifier.width(8.dp))
-            RoundIcon(Icons.Rounded.Add, "Dodaj", active = number.isNotBlank(), enabled = number.isNotBlank(), onClick = {
+            RoundIcon(Icons.Rounded.Add, tr(R.string.dodaj), active = number.isNotBlank(), enabled = number.isNotBlank(), onClick = {
                 s.blockedNumbers = s.blockedNumbers + number.trim(); number = ""
             })
         }
-        if (s.blockedNumbers.isEmpty()) Text("Brak zablokowanych numerów.", color = Palette.TextDim, fontSize = 13.sp, modifier = Modifier.padding(14.dp))
+        if (s.blockedNumbers.isEmpty()) Text(tr(R.string.brak_zablokowanych_numerow), color = Palette.TextDim, fontSize = 13.sp, modifier = Modifier.padding(14.dp))
         s.blockedNumbers.sorted().forEach { n ->
-            ActionRow(Icons.Rounded.Block, formatNumber(n), "Dotknij, aby odblokować") { vm.unblock(n); vm.toast = "Odblokowano $n" }
+            ActionRow(Icons.Rounded.Block, formatNumber(n), tr(R.string.dotknij_aby_odblokowac)) { vm.unblock(n); vm.toast = tr(R.string.odblokowano_1, n) }
         }
     }
-    Group("Słowa kluczowe") {
+    Group(tr(R.string.slowa_kluczowe)) {
         Text(
-            "Wiadomości zawierające te słowa (bez względu na wielkość liter) są zatrzymywane.",
+            tr(R.string.wiadomosci_zawierajace_te_slowa_bez),
             color = Palette.TextDim,
             fontSize = 12.sp,
             modifier = Modifier.padding(start = 14.dp, end = 14.dp, top = 10.dp),
         )
         Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            DarkField(keyword, { keyword = it }, "Słowo lub fraza", modifier = Modifier.weight(1f))
+            DarkField(keyword, { keyword = it }, tr(R.string.slowo_lub_fraza), modifier = Modifier.weight(1f))
             Spacer(Modifier.width(8.dp))
-            RoundIcon(Icons.Rounded.Add, "Dodaj", active = keyword.isNotBlank(), enabled = keyword.isNotBlank(), onClick = {
+            RoundIcon(Icons.Rounded.Add, tr(R.string.dodaj), active = keyword.isNotBlank(), enabled = keyword.isNotBlank(), onClick = {
                 s.blockedKeywords = s.blockedKeywords + keyword.trim(); keyword = ""
             })
         }
         s.blockedKeywords.sorted().forEach { k ->
-            ActionRow(Icons.AutoMirrored.Rounded.TextSnippet, k, "Dotknij, aby usunąć") { s.blockedKeywords = s.blockedKeywords - k }
+            ActionRow(Icons.AutoMirrored.Rounded.TextSnippet, k, tr(R.string.dotknij_aby_usunac)) { s.blockedKeywords = s.blockedKeywords - k }
         }
     }
-    ActionRow(Icons.Rounded.History, "Zatrzymane wiadomości", plural(s.blockedLog.size, "wiadomość", "wiadomości", "wiadomości")) {
+    ActionRow(Icons.Rounded.History, tr(R.string.zatrzymane_wiadomosci), plural(s.blockedLog.size, tr(R.string.wiadomosc_2), tr(R.string.wiadomosci_2), tr(R.string.wiadomosci_2))) {
         vm.push(Screen.SettingsScreen(SettingsPage.BLOCKED_LOG))
     }
 }
@@ -488,9 +510,9 @@ private fun ColumnScope.BlockedLogPage(vm: AppViewModel) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     var confirmClear by remember { mutableStateOf(false) }
-    SwitchRow(Icons.Rounded.History, "Zapisuj zatrzymane wiadomości", "Wyłączone: zablokowane wiadomości są od razu odrzucane", s.keepBlockedLog) { s.keepBlockedLog = it }
+    SwitchRow(Icons.Rounded.History, tr(R.string.zapisuj_zatrzymane_wiadomosci), tr(R.string.wylaczone_zablokowane_wiadomosci_sa_od), s.keepBlockedLog) { s.keepBlockedLog = it }
     if (s.blockedLog.isEmpty()) {
-        EmptyState(Icons.Rounded.Block, "Nic nie zatrzymano", "Tu pojawią się wiadomości od zablokowanych nadawców i ze słowami kluczowymi.")
+        EmptyState(Icons.Rounded.Block, tr(R.string.nic_nie_zatrzymano), tr(R.string.tu_pojawia_sie_wiadomosci_od))
         return
     }
     s.blockedLog.forEach { e ->
@@ -502,19 +524,19 @@ private fun ColumnScope.BlockedLogPage(vm: AppViewModel) {
             Text(e.reason, color = Palette.Record, fontSize = 11.sp)
             Text(e.body, color = Palette.TextDim, fontSize = 13.sp, lineHeight = 18.sp, maxLines = 6, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
             Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PillButton("Przywróć do skrzynki", primary = false, icon = Icons.Rounded.Restore, onClick = {
+                PillButton(tr(R.string.przywroc_do_skrzynki), primary = false, icon = Icons.Rounded.Restore, onClick = {
                     scope.launch {
                         withContext(Dispatchers.IO) { MessageStore(context).insertIncomingSms(e.address, e.body, e.date, -1, read = true) }
-                        vm.toast = "Przywrócono do skrzynki"
+                        vm.toast = tr(R.string.przywrocono_do_skrzynki)
                     }
                 })
-                PillButton("Kopiuj", primary = false, icon = Icons.Rounded.ContentCopy, onClick = { MediaActions.copy(context, e.body); vm.toast = "Skopiowano" })
+                PillButton(tr(R.string.kopiuj), primary = false, icon = Icons.Rounded.ContentCopy, onClick = { MediaActions.copy(context, e.body); vm.toast = tr(R.string.skopiowano) })
             }
         }
     }
-    PillButton("Wyczyść listę", danger = true, onClick = { confirmClear = true })
+    PillButton(tr(R.string.wyczysc_liste), danger = true, onClick = { confirmClear = true })
     if (confirmClear) {
-        ConfirmDialog("Wyczyścić?", "Lista zatrzymanych wiadomości zostanie usunięta.", "Wyczyść", onDismiss = { confirmClear = false }) { s.clearBlockedLog() }
+        ConfirmDialog(tr(R.string.wyczyscic), tr(R.string.lista_zatrzymanych_wiadomosci_zostanie_usunieta), tr(R.string.wyczysc), onDismiss = { confirmClear = false }) { s.clearBlockedLog() }
     }
 }
 
@@ -522,24 +544,24 @@ private fun ColumnScope.BlockedLogPage(vm: AppViewModel) {
 private fun ColumnScope.TemplatesPage(vm: AppViewModel) {
     val s = vm.settings
     var editing by remember { mutableStateOf<Template?>(null) }
-    Text("Szablony wstawiasz w rozmowie przyciskiem „+” → Szablony.", color = Palette.TextDim, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 6.dp))
+    Text(tr(R.string.szablony_wstawiasz_w_rozmowie_przyciskiem), color = Palette.TextDim, fontSize = 13.sp, modifier = Modifier.padding(horizontal = 6.dp))
     Group(null) {
-        if (s.templates.isEmpty()) Text("Brak szablonów.", color = Palette.TextDim, fontSize = 13.sp, modifier = Modifier.padding(14.dp))
+        if (s.templates.isEmpty()) Text(tr(R.string.brak_szablonow), color = Palette.TextDim, fontSize = 13.sp, modifier = Modifier.padding(14.dp))
         s.templates.forEach { t ->
             ActionRow(Icons.AutoMirrored.Rounded.ShortText, t.text, trailing = {
-                RoundIcon(Icons.Rounded.Delete, "Usuń szablon", size = 36.dp, flat = true, tint = Palette.Record, onClick = { s.saveTemplates(s.templates - t) })
+                RoundIcon(Icons.Rounded.Delete, tr(R.string.usun_szablon), size = 36.dp, flat = true, tint = Palette.Record, onClick = { s.saveTemplates(s.templates - t) })
             }) { editing = t }
         }
     }
-    PillButton("Nowy szablon", icon = Icons.Rounded.Add, onClick = { editing = Template(0, "") })
+    PillButton(tr(R.string.nowy_szablon), icon = Icons.Rounded.Add, onClick = { editing = Template(0, "") })
     editing?.let { t ->
         var text by remember(t) { mutableStateOf(t.text) }
         DarkDialog(
-            title = if (t.id == 0L) "Nowy szablon" else "Edytuj szablon",
+            title = if (t.id == 0L) tr(R.string.nowy_szablon) else tr(R.string.edytuj_szablon),
             onDismiss = { editing = null },
             buttons = {
-                PillButton("Anuluj", primary = false, onClick = { editing = null })
-                PillButton("Zapisz", enabled = text.isNotBlank(), onClick = {
+                PillButton(tr(R.string.anuluj), primary = false, onClick = { editing = null })
+                PillButton(tr(R.string.zapisz), enabled = text.isNotBlank(), onClick = {
                     val list = if (t.id == 0L) {
                         s.templates + Template(System.currentTimeMillis(), text.trim())
                     } else {
@@ -550,7 +572,7 @@ private fun ColumnScope.TemplatesPage(vm: AppViewModel) {
                 })
             },
         ) {
-            DarkField(text, { text = it }, "Treść", singleLine = false, minLines = 3)
+            DarkField(text, { text = it }, tr(R.string.tresc), singleLine = false, minLines = 3)
         }
     }
 }
@@ -561,12 +583,12 @@ private fun ColumnScope.ScheduledPage(vm: AppViewModel) {
     val context = LocalContext.current
     LaunchedEffect(Unit) { s.reloadScheduled() }
     if (!Scheduler.canExact(context)) {
-        ActionRow(Icons.Rounded.Warning, "Włącz dokładne alarmy", "Bez nich system może opóźnić wysyłkę o kilka minut") {
+        ActionRow(Icons.Rounded.Warning, tr(R.string.wlacz_dokladne_alarmy), tr(R.string.bez_nich_system_moze_opoznic)) {
             runCatching { context.startActivity(Intent(AndroidSettings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:" + context.packageName))) }
         }
     }
     if (s.scheduled.isEmpty()) {
-        EmptyState(Icons.Rounded.Schedule, "Brak zaplanowanych", "W rozmowie przytrzymaj przycisk wysyłania, aby wybrać datę i godzinę.")
+        EmptyState(Icons.Rounded.Schedule, tr(R.string.brak_zaplanowanych), tr(R.string.w_rozmowie_przytrzymaj_przycisk_wysylania))
         return
     }
     s.scheduled.forEach { m ->
@@ -577,23 +599,23 @@ private fun ColumnScope.ScheduledPage(vm: AppViewModel) {
                 if (m.confirm) {
                     val waiting = m.time <= System.currentTimeMillis()
                     Text(
-                        if (waiting) "Czeka na decyzję" else "Zapyta przed wysłaniem",
+                        if (waiting) tr(R.string.czeka_na_decyzje) else tr(R.string.zapyta_przed_wyslaniem),
                         color = if (waiting) Palette.Accent else Palette.TextDim,
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
                     )
                 }
             }
-            Text("Do: " + m.addresses.joinToString(", ") { com.blacksingularities.opensms.data.Contacts.displayName(context, it) }, color = Palette.TextDim, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+            Text(tr(R.string.do_2) + m.addresses.joinToString(", ") { com.blacksingularities.opensms.data.Contacts.displayName(context, it) }, color = Palette.TextDim, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
             Text(m.text, color = Color.White, fontSize = 14.sp, lineHeight = 19.sp, modifier = Modifier.padding(top = 6.dp))
             Row(Modifier.padding(top = 10.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                PillButton("Wyślij teraz", icon = Icons.AutoMirrored.Rounded.Send, onClick = {
+                PillButton(tr(R.string.wyslij_teraz), icon = Icons.AutoMirrored.Rounded.Send, onClick = {
                     Scheduler.cancel(context, m.id)
                     vm.send(Screen.Thread(null, m.addresses), m.text, emptyList(), m.subId)
-                    vm.toast = "Wysyłanie…"
+                    vm.toast = tr(R.string.wysylanie_2)
                 })
-                PillButton("Anuluj", primary = false, icon = Icons.Rounded.Delete, onClick = { Scheduler.cancel(context, m.id); vm.toast = "Anulowano" })
-                PillButton("Edytuj", primary = false, icon = Icons.Rounded.Edit, onClick = {
+                PillButton(tr(R.string.anuluj), primary = false, icon = Icons.Rounded.Delete, onClick = { Scheduler.cancel(context, m.id); vm.toast = tr(R.string.anulowano) })
+                PillButton(tr(R.string.edytuj), primary = false, icon = Icons.Rounded.Edit, onClick = {
                     Scheduler.cancel(context, m.id)
                     vm.openAddresses(m.addresses, m.text)
                 })
@@ -612,20 +634,20 @@ private fun ColumnScope.StatsPage(vm: AppViewModel) {
         return
     }
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        StatTile("Odebrane SMS", st.smsIn.toString(), Modifier.weight(1f))
-        StatTile("Wysłane SMS", st.smsOut.toString(), Modifier.weight(1f))
+        StatTile(tr(R.string.odebrane_sms), st.smsIn.toString(), Modifier.weight(1f))
+        StatTile(tr(R.string.wyslane_sms), st.smsOut.toString(), Modifier.weight(1f))
     }
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        StatTile("Odebrane MMS", st.mmsIn.toString(), Modifier.weight(1f))
-        StatTile("Wysłane MMS", st.mmsOut.toString(), Modifier.weight(1f))
+        StatTile(tr(R.string.odebrane_mms), st.mmsIn.toString(), Modifier.weight(1f))
+        StatTile(tr(R.string.wyslane_mms), st.mmsOut.toString(), Modifier.weight(1f))
     }
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        StatTile("Rozmowy", st.threads.toString(), Modifier.weight(1f))
-        StatTile("Średnia długość", "${st.avgLength} zn.", Modifier.weight(1f))
+        StatTile(tr(R.string.rozmowy), st.threads.toString(), Modifier.weight(1f))
+        StatTile(tr(R.string.srednia_dlugosc), "${st.avgLength} zn.", Modifier.weight(1f))
     }
-    StatTile("Najczęściej piszesz o", "${st.busiestHour}:00–${st.busiestHour + 1}:00", Modifier.fillMaxWidth())
+    StatTile(tr(R.string.najczesciej_piszesz_o), "${st.busiestHour}:00–${st.busiestHour + 1}:00", Modifier.fillMaxWidth())
     if (st.top.isNotEmpty()) {
-        Group("Najczęstsi rozmówcy (SMS)") {
+        Group(tr(R.string.najczestsi_rozmowcy_sms)) {
             val max = st.top.maxOf { it.second }.coerceAtLeast(1)
             st.top.forEach { (name, n) ->
                 Column(Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {

@@ -1,11 +1,15 @@
 package com.blacksingularities.opensms.ui
 
+import com.blacksingularities.opensms.R
+import com.blacksingularities.opensms.tr
+
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-private val PL = Locale.forLanguageTag("pl-PL")
+/** Język interfejsu – nazwy dni i miesięcy podążają za ustawieniem systemu. */
+private val PL: Locale get() = Locale.getDefault()
 
 private fun cal(t: Long) = Calendar.getInstance().apply { timeInMillis = t }
 
@@ -20,8 +24,8 @@ fun formatTime(t: Long): String = SimpleDateFormat("HH:mm", PL).format(Date(t))
 fun formatListTime(t: Long, relative: Boolean): String {
     val now = System.currentTimeMillis()
     val diff = now - t
-    if (relative && diff in 0 until 60_000) return "teraz"
-    if (relative && diff in 60_000 until 3_600_000) return "${diff / 60_000} min"
+    if (relative && diff in 0 until 60_000) return tr(R.string.teraz)
+    if (relative && diff in 60_000 until 3_600_000) return tr(R.string.min_1, diff / 60_000)
     val c = cal(t)
     val n = cal(now)
     return when {
@@ -36,9 +40,9 @@ fun formatListTime(t: Long, relative: Boolean): String {
 fun formatDayHeader(t: Long): String {
     val c = cal(t)
     val n = cal(System.currentTimeMillis())
-    if (sameDay(c, n)) return "Dziś"
+    if (sameDay(c, n)) return tr(R.string.dzis)
     n.add(Calendar.DAY_OF_YEAR, -1)
-    if (sameDay(c, n)) return "Wczoraj"
+    if (sameDay(c, n)) return tr(R.string.wczoraj)
     val now = cal(System.currentTimeMillis())
     val pattern = if (c.get(Calendar.YEAR) == now.get(Calendar.YEAR)) "EEEE, d MMMM" else "d MMMM yyyy"
     return SimpleDateFormat(pattern, PL).format(Date(t)).replaceFirstChar { it.uppercase() }

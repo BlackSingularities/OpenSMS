@@ -1,5 +1,7 @@
 package com.blacksingularities.opensms.notify
 
+import com.blacksingularities.opensms.tr
+
 import com.blacksingularities.opensms.schedule.ScheduledSendReceiver
 import com.blacksingularities.opensms.schedule.Scheduler
 import com.blacksingularities.opensms.data.ScheduledMessage
@@ -22,6 +24,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
 import androidx.core.app.RemoteInput
+import androidx.core.content.LocusIdCompat
 import androidx.core.graphics.drawable.IconCompat
 import com.blacksingularities.opensms.MainActivity
 import com.blacksingularities.opensms.R
@@ -51,14 +54,14 @@ object Notifier {
         val nm = context.getSystemService(NotificationManager::class.java) ?: return
         nm.createNotificationChannels(
             listOf(
-                NotificationChannel(CHANNEL_MESSAGES, "Wiadomości", NotificationManager.IMPORTANCE_HIGH).apply {
-                    description = "Nowe SMS i MMS"
+                NotificationChannel(CHANNEL_MESSAGES, tr(R.string.wiadomosci), NotificationManager.IMPORTANCE_HIGH).apply {
+                    description = tr(R.string.nowe_sms_i_mms)
                     enableVibration(true)
                 },
-                NotificationChannel(CHANNEL_ALERTS, "Błędy i zaplanowane", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                    description = "Nieudane wysyłanie, MMS do pobrania, wysłane wiadomości zaplanowane"
+                NotificationChannel(CHANNEL_ALERTS, tr(R.string.bledy_i_zaplanowane), NotificationManager.IMPORTANCE_DEFAULT).apply {
+                    description = tr(R.string.nieudane_wysylanie_mms_do_pobrania)
                 },
-                NotificationChannel(CHANNEL_UPDATES, "Aktualizacje", NotificationManager.IMPORTANCE_LOW),
+                NotificationChannel(CHANNEL_UPDATES, tr(R.string.aktualizacje), NotificationManager.IMPORTANCE_LOW),
             ),
         )
     }
@@ -86,7 +89,7 @@ object Notifier {
         val addresses = store.threadAddresses(threadId).ifEmpty { listOf(unread.last().address) }
         val title = Contacts.title(context, addresses)
         val group = addresses.size > 1
-        val me = Person.Builder().setName("Ty").build()
+        val me = Person.Builder().setName(tr(R.string.ty)).build()
         val style = NotificationCompat.MessagingStyle(me)
         if (group) style.setConversationTitle(title).setGroupConversation(true)
         val avatar = Contacts.lookup(context, addresses.first())?.photo?.let { loadIcon(context, it) }
@@ -98,13 +101,13 @@ object Notifier {
                 .apply { if (!group && avatar != null) setIcon(avatar) }
                 .build()
             val text = when {
-                !s.notificationPreview -> "Nowa wiadomość"
-                m.pendingUrl != null -> "MMS do pobrania"
+                !s.notificationPreview -> tr(R.string.nowa_wiadomosc)
+                m.pendingUrl != null -> tr(R.string.mms_do_pobrania)
                 m.body.isNotBlank() -> m.body
-                m.media.any { it.isImage } -> "📷 Zdjęcie"
+                m.media.any { it.isImage } -> tr(R.string.zdjecie)
                 m.media.any { it.isVideo } -> "🎬 Film"
                 m.media.any { it.isAudio } -> "🎵 Nagranie"
-                else -> "Załącznik"
+                else -> tr(R.string.zalacznik)
             }
             style.addMessage(text, m.date, person)
         }
@@ -113,7 +116,7 @@ object Notifier {
             .setColor(0xFF000000.toInt())
             .setStyle(style)
             .setContentTitle(title)
-            .setContentText(if (s.notificationPreview) unread.last().body else "Nowa wiadomość")
+            .setContentText(if (s.notificationPreview) unread.last().body else tr(R.string.nowa_wiadomosc))
             .setContentIntent(openThreadIntent(context, threadId))
             .setDeleteIntent(action(context, NotificationActionReceiver.ACTION_DISMISS, threadId))
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
@@ -121,18 +124,29 @@ object Notifier {
             .setAutoCancel(true)
             .setOnlyAlertOnce(false)
             .setNumber(unread.size)
-            .setVisibility(if (s.notificationPreview) NotificationCompat.VISIBILITY_PRIVATE else NotificationCompat.VISIBILITY_SECRET)
+            .setVisibility(
+                when {
+                    !s.notificationPreview -> NotificationCompat.VISIBILITY_SECRET
+                    s.lockScreenContent -> NotificationCompat.VISIBILITY_PUBLIC
+                    else -> NotificationCompat.VISIBILITY_PRIVATE
+                },
+            )
             .setPublicVersion(
                 NotificationCompat.Builder(context, CHANNEL_MESSAGES)
                     .setSmallIcon(R.drawable.ic_notification)
                     .setContentTitle("OpenSMS")
-                    .setContentText(if (unread.size == 1) "Nowa wiadomość" else "Nowe wiadomości: ${unread.size}")
+                    .setContentText(if (unread.size == 1) tr(R.string.nowa_wiadomosc) else tr(R.string.nowe_wiadomosci_1, unread.size))
                     .build(),
             )
 
+        // Skrót rozmowy: powiadomienie trafia do sekcji „Rozmowy” i da się je oznaczyć jako priorytetowe.
+        ConversationShortcuts.push(context, threadId, addresses)?.let { id ->
+            n.setShortcutId(id).setLocusId(LocusIdCompat(id))
+        }
+
         // Nadawcy alfanumeryczni nie przyjmują wiadomości – odpowiedź z powiadomienia byłaby ślepym zaułkiem.
         if (addresses.any { canReplyTo(it) }) {
-            val reply = RemoteInput.Builder(NotificationActionReceiver.KEY_REPLY).setLabel("Odpowiedz…").build()
+            val reply = RemoteInput.Builder(NotificationActionReceiver.KEY_REPLY).setLabel(tr(R.string.odpowiedz)).build()
             val replyIntent = PendingIntent.getBroadcast(
                 context,
                 threadId.toInt(),
@@ -142,7 +156,7 @@ object Notifier {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
             )
             n.addAction(
-                NotificationCompat.Action.Builder(R.drawable.ic_notification, "Odpowiedz", replyIntent)
+                NotificationCompat.Action.Builder(R.drawable.ic_notification, tr(R.string.odpowiedz_2), replyIntent)
                     .addRemoteInput(reply)
                     .setAllowGeneratedReplies(true)
                     .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_REPLY)
@@ -151,7 +165,7 @@ object Notifier {
             )
         }
         n.addAction(
-            NotificationCompat.Action.Builder(R.drawable.ic_notification, "Przeczytane", action(context, NotificationActionReceiver.ACTION_READ, threadId))
+            NotificationCompat.Action.Builder(R.drawable.ic_notification, tr(R.string.przeczytane), action(context, NotificationActionReceiver.ACTION_READ, threadId))
                 .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_MARK_AS_READ)
                 .setShowsUserInterface(false)
                 .build(),
@@ -165,7 +179,7 @@ object Notifier {
                 n.addAction(
                     NotificationCompat.Action.Builder(
                         R.drawable.ic_notification,
-                        "Kopiuj $code",
+                        tr(R.string.kopiuj_1, code),
                         PendingIntent.getBroadcast(context, threadId.toInt() + 7, copy, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE),
                     ).build(),
                 )
@@ -187,8 +201,8 @@ object Notifier {
         val title = Contacts.title(context, MessageStore(context).threadAddresses(threadId))
         val n = NotificationCompat.Builder(context, CHANNEL_ALERTS)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("Nie wysłano do: $title")
-            .setContentText("$reason. Dotknij, aby ponowić.")
+            .setContentTitle(tr(R.string.nie_wyslano_do_1, title))
+            .setContentText(tr(R.string.s_1_dotknij_aby_ponowic, reason))
             .setContentIntent(openThreadIntent(context, threadId))
             .setAutoCancel(true)
             .build()
@@ -200,8 +214,8 @@ object Notifier {
         val title = Contacts.title(context, MessageStore(context).threadAddresses(threadId))
         val n = NotificationCompat.Builder(context, CHANNEL_ALERTS)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("MMS od: $title")
-            .setContentText("Nie udało się pobrać. Włącz dane komórkowe i dotknij „Pobierz” w rozmowie.")
+            .setContentTitle(tr(R.string.mms_od_1, title))
+            .setContentText(tr(R.string.nie_udalo_sie_pobrac_wlacz))
             .setContentIntent(openThreadIntent(context, threadId))
             .setAutoCancel(true)
             .build()
@@ -212,8 +226,8 @@ object Notifier {
         if (!canNotify(context)) return
         val n = NotificationCompat.Builder(context, CHANNEL_ALERTS)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("Wysłano zaplanowaną wiadomość")
-            .setContentText("Do: $title")
+            .setContentTitle(tr(R.string.wyslano_zaplanowana_wiadomosc))
+            .setContentText(tr(R.string.do_1, title))
             .setContentIntent(openThreadIntent(context, threadId))
             .setAutoCancel(true)
             .build()
@@ -234,16 +248,16 @@ object Notifier {
         }
         val n = NotificationCompat.Builder(context, CHANNEL_MESSAGES)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("Wysłać zaplanowaną wiadomość?")
-            .setContentText("Do: $title · ${m.text}")
-            .setStyle(NotificationCompat.BigTextStyle().bigText("Do: $title\n${m.text}"))
+            .setContentTitle(tr(R.string.wyslac_zaplanowana_wiadomosc))
+            .setContentText(tr(R.string.do_tresc_1, title, m.text))
+            .setStyle(NotificationCompat.BigTextStyle().bigText(tr(R.string.do_tresc_nl_1, title, m.text)))
             .setCategory(NotificationCompat.CATEGORY_REMINDER)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setOngoing(true)
             .setAutoCancel(false)
             .apply { open?.let { setContentIntent(it) } }
-            .addAction(0, "Wyślij", act(Scheduler.ACTION_SEND, 1))
-            .addAction(0, "Nie wysyłaj", act(Scheduler.ACTION_SKIP, 2))
+            .addAction(0, tr(R.string.wyslij), act(Scheduler.ACTION_SEND, 1))
+            .addAction(0, tr(R.string.nie_wysylaj), act(Scheduler.ACTION_SKIP, 2))
             .build()
         runCatching { NotificationManagerCompat.from(context).notify(confirmId(m.id), n) }
     }
@@ -283,8 +297,8 @@ class NotificationActionReceiver : BroadcastReceiver() {
         when (intent.action) {
             ACTION_COPY -> {
                 val code = intent.getStringExtra(EXTRA_CODE) ?: return
-                context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText("Kod", code))
-                if (Build.VERSION.SDK_INT < 33) Toast.makeText(context, "Skopiowano kod $code", Toast.LENGTH_SHORT).show()
+                context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText(tr(R.string.kod), code))
+                if (Build.VERSION.SDK_INT < 33) Toast.makeText(context, tr(R.string.skopiowano_kod_1, code), Toast.LENGTH_SHORT).show()
                 async {
                     MessageStore(context).markRead(threadId)
                     Notifier.cancel(context, threadId)

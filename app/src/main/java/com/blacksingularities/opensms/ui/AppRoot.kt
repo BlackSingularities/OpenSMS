@@ -1,5 +1,8 @@
 package com.blacksingularities.opensms.ui
 
+import com.blacksingularities.opensms.R
+import com.blacksingularities.opensms.tr
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
@@ -35,6 +38,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Block
 import androidx.compose.material.icons.rounded.Contacts
 import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.NotificationsActive
 import androidx.compose.material.icons.rounded.Schedule
 import androidx.compose.material.icons.rounded.Sms
@@ -61,9 +65,12 @@ fun AppRoot(
     vm: AppViewModel,
     onRequestDefault: () -> Unit,
     onRequestPermissions: () -> Unit,
+    onUnlock: () -> Unit = {},
 ) {
     Box(Modifier.fillMaxSize().background(Palette.Ink)) {
-        if (!vm.isDefault) {
+        if (vm.locked) {
+            LockScreen(onUnlock)
+        } else if (!vm.isDefault) {
             Onboarding(onRequestDefault)
         } else {
             BackHandler(enabled = vm.stack.size > 1 || vm.selection.isNotEmpty() || vm.searching || vm.filter != Filter.ALL) { vm.back() }
@@ -101,6 +108,32 @@ fun AppRoot(
     }
 }
 
+/** Blokada aplikacji: treść rozmów niewidoczna, dopóki użytkownik się nie uwierzytelni. */
+@Composable
+private fun LockScreen(onUnlock: () -> Unit) {
+    // Pytanie o odcisk palca pojawia się od razu; przycisk zostaje na wypadek anulowania.
+    LaunchedEffect(Unit) { onUnlock() }
+    Column(
+        Modifier.fillMaxSize().screenPadding().padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Box(Modifier.size(88.dp).clip(CircleShape).background(Palette.PanelHigh), contentAlignment = Alignment.Center) {
+            Icon(Icons.Rounded.Lock, null, tint = Color.White, modifier = Modifier.size(40.dp))
+        }
+        Spacer(Modifier.height(20.dp))
+        Text(tr(R.string.opensms_zablokowany), color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+        Text(
+            tr(R.string.odblokuj_opis),
+            color = Palette.TextDim,
+            fontSize = 14.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = 6.dp, bottom = 24.dp),
+        )
+        PillButton(tr(R.string.odblokuj), onClick = onUnlock)
+    }
+}
+
 /** Krótki komunikat na dole ekranu (biała pigułka). */
 @Composable
 private fun Toast(vm: AppViewModel) {
@@ -133,7 +166,7 @@ private fun Toast(vm: AppViewModel) {
                 )
                 if (undo != null) {
                     Text(
-                        "Cofnij",
+                        tr(R.string.cofnij),
                         color = Color.White,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Bold,
@@ -167,21 +200,21 @@ private fun Onboarding(onRequestDefault: () -> Unit) {
         }
         Spacer(Modifier.height(18.dp))
         Text("OpenSMS", fontSize = 34.sp, fontWeight = FontWeight.Black, color = Color.White)
-        Text("Wiadomości SMS i MMS – szybko, prywatnie, bez reklam", fontSize = 14.sp, color = Palette.TextDim, textAlign = TextAlign.Center)
+        Text(tr(R.string.wiadomosci_sms_i_mms_szybko), fontSize = 14.sp, color = Palette.TextDim, textAlign = TextAlign.Center)
         Spacer(Modifier.height(28.dp))
         Column(Modifier.widthIn(max = 480.dp).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Feature(Icons.Rounded.Image, "SMS i MMS", "Zdjęcia, filmy, nagrania, wizytówki i rozmowy grupowe")
-            Feature(Icons.Rounded.NotificationsActive, "Mądre powiadomienia", "Odpowiedź z powiadomienia i kopiowanie kodów jednym dotknięciem")
-            Feature(Icons.Rounded.Schedule, "Zaplanowane i szablony", "Wyślij później, szybkie odpowiedzi, podpis")
-            Feature(Icons.Rounded.Block, "Filtr spamu", "Blokowanie numerów, słów kluczowych i nieznanych nadawców")
-            Feature(Icons.Rounded.Contacts, "Dual SIM i kopia zapasowa", "Wybór karty przy wysyłce, eksport i import wiadomości")
-            Feature(Icons.Rounded.SystemUpdate, "Automatyczne aktualizacje", "Nowe wersje instalują się same")
+            Feature(Icons.Rounded.Image, "SMS i MMS", tr(R.string.zdjecia_filmy_nagrania_wizytowki_i))
+            Feature(Icons.Rounded.NotificationsActive, tr(R.string.madre_powiadomienia), tr(R.string.odpowiedz_z_powiadomienia_i_kopiowanie))
+            Feature(Icons.Rounded.Schedule, tr(R.string.zaplanowane_i_szablony), tr(R.string.wyslij_pozniej_szybkie_odpowiedzi_podpis))
+            Feature(Icons.Rounded.Block, tr(R.string.filtr_spamu), tr(R.string.blokowanie_numerow_slow_kluczowych_i))
+            Feature(Icons.Rounded.Contacts, tr(R.string.dual_sim_i_kopia_zapasowa), tr(R.string.wybor_karty_przy_wysylce_eksport))
+            Feature(Icons.Rounded.SystemUpdate, tr(R.string.automatyczne_aktualizacje), tr(R.string.nowe_wersje_instaluja_sie_same))
         }
         Spacer(Modifier.height(28.dp))
-        PillButton("Ustaw jako domyślną aplikację SMS", modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth(), onClick = onRequestDefault)
+        PillButton(tr(R.string.ustaw_jako_domyslna_aplikacje_sms), modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth(), onClick = onRequestDefault)
         Spacer(Modifier.height(10.dp))
         Text(
-            "Android pozwala odbierać i wysyłać SMS tylko domyślnej aplikacji. Wiadomości zostają w telefonie – OpenSMS nie wysyła ich nigdzie.",
+            tr(R.string.android_pozwala_odbierac_i_wysylac),
             fontSize = 12.sp,
             color = Palette.TextFaint,
             textAlign = TextAlign.Center,

@@ -1,5 +1,8 @@
 package com.blacksingularities.opensms.update
 
+import com.blacksingularities.opensms.R
+import com.blacksingularities.opensms.tr
+
 import org.json.JSONObject
 import java.io.File
 
@@ -38,7 +41,7 @@ fun parseRelease(json: String): ReleaseInfo {
             }
         }
     }
-    if (url.isEmpty()) error("Wydanie nie zawiera pliku APK")
+    if (url.isEmpty()) error(tr(R.string.wydanie_nie_zawiera_pliku_apk))
     return ReleaseInfo(
         version = o.optString("tag_name").removePrefix("v"),
         notes = "",

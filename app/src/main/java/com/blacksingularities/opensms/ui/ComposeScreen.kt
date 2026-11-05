@@ -1,5 +1,8 @@
 package com.blacksingularities.opensms.ui
 
+import com.blacksingularities.opensms.R
+import com.blacksingularities.opensms.tr
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -97,7 +100,7 @@ fun ComposeScreen(vm: AppViewModel, s: Screen.Compose) {
         val a = address.trim()
         if (a.isEmpty()) return
         if (!canReplyTo(a)) {
-            vm.toast = "Na ten adres nie da się wysłać wiadomości"
+            vm.toast = tr(R.string.na_ten_adres_nie_da)
             return
         }
         if (recipients.none { normalizeNumber(it) == normalizeNumber(a) }) recipients = recipients + a
@@ -107,7 +110,7 @@ fun ComposeScreen(vm: AppViewModel, s: Screen.Compose) {
     fun proceed() {
         val list = if (recipients.isEmpty() && canUseRaw) listOf(query.trim()) else recipients
         if (list.isEmpty()) {
-            vm.toast = "Wybierz odbiorcę"
+            vm.toast = tr(R.string.wybierz_odbiorce)
             return
         }
         vm.openAddresses(list, s.text, s.attachments, replaceTop = true)
@@ -115,13 +118,13 @@ fun ComposeScreen(vm: AppViewModel, s: Screen.Compose) {
 
     Column(Modifier.fillMaxSize().background(Palette.Ink).screenPadding().imePadding()) {
         Row(Modifier.fillMaxWidth().padding(start = 10.dp, end = 10.dp, top = 2.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            RoundIcon(Icons.AutoMirrored.Rounded.ArrowBack, "Wstecz", flat = true, onClick = { vm.back() })
+            RoundIcon(Icons.AutoMirrored.Rounded.ArrowBack, tr(R.string.wstecz), flat = true, onClick = { vm.back() })
             Column(Modifier.weight(1f).padding(start = 6.dp)) {
-                Text("Nowa wiadomość", color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
+                Text(tr(R.string.nowa_wiadomosc), color = Color.White, fontSize = 20.sp, fontWeight = FontWeight.Black)
                 if (s.attachments.isNotEmpty() || s.text.isNotEmpty()) {
                     Text(
                         listOfNotNull(
-                            s.attachments.takeIf { it.isNotEmpty() }?.let { plural(it.size, "załącznik", "załączniki", "załączników") },
+                            s.attachments.takeIf { it.isNotEmpty() }?.let { plural(it.size, tr(R.string.zalacznik_2), tr(R.string.zalaczniki), tr(R.string.zalacznikow)) },
                             s.text.takeIf { it.isNotEmpty() }?.let { "„" + it.take(30) + (if (it.length > 30) "…”" else "”") },
                         ).joinToString(" · "),
                         color = Palette.TextDim,
@@ -136,7 +139,7 @@ fun ComposeScreen(vm: AppViewModel, s: Screen.Compose) {
                     Modifier.clip(RoundedCornerShape(50)).background(Color.White).clickable { proceed() }.padding(horizontal = 16.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Dalej", color = Palette.Ink, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text(tr(R.string.dalej), color = Palette.Ink, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     Spacer(Modifier.width(4.dp))
                     Icon(Icons.AutoMirrored.Rounded.ArrowForward, null, tint = Palette.Ink, modifier = Modifier.size(18.dp))
                 }
@@ -153,7 +156,7 @@ fun ComposeScreen(vm: AppViewModel, s: Screen.Compose) {
                 .padding(start = 16.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Do:", color = Palette.TextDim, fontSize = 15.sp, modifier = Modifier.padding(end = 8.dp))
+            Text(tr(R.string.do), color = Palette.TextDim, fontSize = 15.sp, modifier = Modifier.padding(end = 8.dp))
             Row(
                 Modifier.weight(1f).horizontalScroll(rememberScrollState()),
                 verticalAlignment = Alignment.CenterVertically,
@@ -165,11 +168,11 @@ fun ComposeScreen(vm: AppViewModel, s: Screen.Compose) {
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(Contacts.displayName(context, r), color = Palette.Ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
-                        Icon(Icons.Rounded.Close, "Usuń odbiorcę", tint = Palette.Ink, modifier = Modifier.padding(start = 3.dp).size(14.dp))
+                        Icon(Icons.Rounded.Close, tr(R.string.usun_odbiorce), tint = Palette.Ink, modifier = Modifier.padding(start = 3.dp).size(14.dp))
                     }
                 }
                 Box(Modifier.width(220.dp).padding(vertical = 6.dp)) {
-                    if (query.isEmpty()) Text(if (recipients.isEmpty()) "Imię lub numer" else "Dodaj kolejną osobę", color = Palette.TextFaint, fontSize = 15.sp)
+                    if (query.isEmpty()) Text(if (recipients.isEmpty()) tr(R.string.imie_lub_numer) else tr(R.string.dodaj_kolejna_osobe), color = Palette.TextFaint, fontSize = 15.sp)
                     BasicTextField(
                         value = query,
                         onValueChange = { v ->
@@ -190,14 +193,14 @@ fun ComposeScreen(vm: AppViewModel, s: Screen.Compose) {
                     )
                 }
             }
-            RoundIcon(if (dialpad) Icons.Rounded.Keyboard else Icons.Rounded.Dialpad, if (dialpad) "Klawiatura" else "Klawiatura numeryczna", size = 38.dp, flat = true, onClick = { dialpad = !dialpad })
+            RoundIcon(if (dialpad) Icons.Rounded.Keyboard else Icons.Rounded.Dialpad, if (dialpad) tr(R.string.klawiatura) else tr(R.string.klawiatura_numeryczna), size = 38.dp, flat = true, onClick = { dialpad = !dialpad })
         }
         if (recipients.size > 1) {
             Row(Modifier.padding(horizontal = 24.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Rounded.Groups, null, tint = Palette.TextDim, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    if (vm.settings.groupAsMms) "Rozmowa grupowa – wiadomość MMS do ${recipients.size} osób" else "Osobny SMS do każdej z ${recipients.size} osób",
+                    if (vm.settings.groupAsMms) tr(R.string.rozmowa_grupowa_wiadomosc_mms_do, recipients.size) else tr(R.string.osobny_sms_do_kazdej_z, recipients.size),
                     color = Palette.TextDim,
                     fontSize = 12.sp,
                 )
@@ -215,14 +218,14 @@ fun ComposeScreen(vm: AppViewModel, s: Screen.Compose) {
                             Icon(Icons.Rounded.Dialpad, null, tint = Palette.Ink)
                         }
                         Column(Modifier.padding(start = 14.dp)) {
-                            Text("Wyślij do ${formatNumber(query.trim())}", color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                            Text("Numer spoza kontaktów", color = Palette.TextDim, fontSize = 12.sp)
+                            Text(tr(R.string.wyslij_do_1, formatNumber(query.trim())), color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                            Text(tr(R.string.numer_spoza_kontaktow), color = Palette.TextDim, fontSize = 12.sp)
                         }
                     }
                 }
             }
             if (q.isEmpty() && recent.isNotEmpty()) {
-                item { Label("Ostatnie") }
+                item { Label(tr(R.string.ostatnie)) }
                 items(recent, key = { "r" + it.conv.threadId }) { c ->
                     PersonRow(c.title, formatNumber(c.conv.addresses[0]), c.photo, vm.settings.colorAvatars, starred = false, chosen = c.conv.addresses[0] in recipients) {
                         add(c.conv.addresses[0])
@@ -230,12 +233,12 @@ fun ComposeScreen(vm: AppViewModel, s: Screen.Compose) {
                 }
             }
             if (filtered.isNotEmpty()) {
-                item { Label(if (q.isEmpty()) "Kontakty" else "Pasujące kontakty") }
+                item { Label(if (q.isEmpty()) tr(R.string.kontakty) else tr(R.string.pasujace_kontakty)) }
                 items(filtered, key = { "c" + it.id + ":" + it.number }) { c -> ContactRow(vm, c, c.number in recipients) { add(c.number) } }
             } else if (!Contacts.hasPermission(context)) {
-                item { EmptyState(Icons.Rounded.PersonSearch, "Brak dostępu do kontaktów", "Wpisz numer albo zezwól OpenSMS na odczyt kontaktów w ustawieniach.") }
+                item { EmptyState(Icons.Rounded.PersonSearch, tr(R.string.brak_dostepu_do_kontaktow), tr(R.string.wpisz_numer_albo_zezwol_opensms)) }
             } else if (q.isNotEmpty() && !canUseRaw) {
-                item { EmptyState(Icons.Rounded.PersonSearch, "Nie znaleziono", "Wpisz pełny numer telefonu, aby napisać do osoby spoza kontaktów.") }
+                item { EmptyState(Icons.Rounded.PersonSearch, tr(R.string.nie_znaleziono), tr(R.string.wpisz_pelny_numer_telefonu_aby)) }
             }
         }
     }
@@ -276,7 +279,7 @@ private fun PersonRow(
         Column(Modifier.weight(1f).padding(start = 14.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(name, color = Color.White, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                if (starred) Icon(Icons.Rounded.Star, "Ulubiony", tint = Palette.TextDim, modifier = Modifier.padding(start = 4.dp).size(14.dp))
+                if (starred) Icon(Icons.Rounded.Star, tr(R.string.ulubiony), tint = Palette.TextDim, modifier = Modifier.padding(start = 4.dp).size(14.dp))
             }
             Text(subtitle, color = Palette.TextDim, fontSize = 12.sp, maxLines = 1)
         }
