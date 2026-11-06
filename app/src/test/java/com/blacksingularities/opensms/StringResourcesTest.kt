@@ -13,7 +13,7 @@ import java.io.File
  */
 class StringResourcesTest {
     private val entry = Regex("<string name=\"(\\w+)\"[^>]*>(.*?)</string>")
-    private val placeholder = Regex("%(\\d)\\$s")
+    private val placeholder = Regex("%(\\d)\\\$s")
 
     private fun load(path: String): Map<String, String> =
         entry.findAll(File(path).readText()).associate { it.groupValues[1] to it.groupValues[2] }

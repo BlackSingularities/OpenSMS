@@ -375,12 +375,19 @@ fun ThreadScreen(vm: AppViewModel, s: Screen.Thread) {
                 } else {
                     ActionRow(Icons.Rounded.PersonAdd, tr(R.string.dodaj_do_kontaktow)) {
                         menu = false
-                        runCatching {
-                            context.startActivity(
-                                Intent(Intent.ACTION_INSERT_OR_EDIT).setType(ContactsContract.Contacts.CONTENT_ITEM_TYPE)
-                                    .putExtra(ContactsContract.Intents.Insert.PHONE, s.addresses[0]),
-                            )
+                        // Nie każda aplikacja kontaktów obsługuje „dodaj lub edytuj” (np. OpenDial przyjmuje
+                        // tylko „dodaj”), więc próbujemy kolejno, a gdy nic nie odpowie – mówimy o tym.
+                        val phone = s.addresses[0]
+                        val tries = listOf(
+                            Intent(Intent.ACTION_INSERT_OR_EDIT).setType(ContactsContract.Contacts.CONTENT_ITEM_TYPE),
+                            Intent(Intent.ACTION_INSERT, ContactsContract.Contacts.CONTENT_URI),
+                        )
+                        val opened = tries.any { i ->
+                            runCatching {
+                                context.startActivity(i.putExtra(ContactsContract.Intents.Insert.PHONE, phone))
+                            }.isSuccess
                         }
+                        if (!opened) vm.toast = tr(R.string.brak_aplikacji_kontaktow)
                     }
                 }
             }

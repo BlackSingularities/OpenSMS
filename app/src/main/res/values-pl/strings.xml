@@ -161,7 +161,7 @@
     <string name="zalaczniki">załączniki</string>
     <string name="zalacznikow">załączników</string>
     <string name="dalej">Dalej</string>
-    <string name="do">Do:</string>
+    <string name="do_odbiorcy">Do:</string>
     <string name="usun_odbiorce">Usuń odbiorcę</string>
     <string name="imie_lub_numer">Imię lub numer</string>
     <string name="dodaj_kolejna_osobe">Dodaj kolejną osobę</string>
@@ -397,6 +397,7 @@
     <string name="wczytaj_starsze">Wczytaj starsze</string>
     <string name="pokaz_kontakt">Pokaż kontakt</string>
     <string name="dodaj_do_kontaktow">Dodaj do kontaktów</string>
+    <string name="brak_aplikacji_kontaktow">Brak aplikacji kontaktów, która dodałaby ten numer</string>
     <string name="szczegoly_rozmowy">Szczegóły rozmowy</string>
     <string name="wlacz_powiadomienia">Włącz powiadomienia</string>
     <string name="wycisz_powiadomienia">Wycisz powiadomienia</string>

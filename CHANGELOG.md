@@ -1,5 +1,11 @@
 # Zmiany
 
+## 1.4.2
+
+- „Dodaj do kontaktów” w menu rozmowy znów działa także z aplikacjami kontaktów, które nie obsługują „dodaj lub edytuj” (np. OpenDial); gdy żadna aplikacja nie odpowie, pojawia się komunikat.
+- Nazwy nadawców odświeżają się od razu po dodaniu albo zmianie kontaktu (także na karcie SIM) – bez restartu aplikacji.
+- Poprawka budowania: wersje 1.4.0 i 1.4.1 nie powstały przez zasób o nazwie zastrzeżonej w Javie.
+
 ## 1.4.1
 
 - **Wybór języka**: Ustawienia → System → Język – „Automatycznie” (jak telefon) albo dowolny dostępny język; ten sam wybór jest w systemowych ustawieniach języka aplikacji (Android 13+).

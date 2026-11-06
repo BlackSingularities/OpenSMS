@@ -156,7 +156,7 @@ fun ComposeScreen(vm: AppViewModel, s: Screen.Compose) {
                 .padding(start = 16.dp, end = 6.dp, top = 6.dp, bottom = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(tr(R.string.do), color = Palette.TextDim, fontSize = 15.sp, modifier = Modifier.padding(end = 8.dp))
+            Text(tr(R.string.do_odbiorcy), color = Palette.TextDim, fontSize = 15.sp, modifier = Modifier.padding(end = 8.dp))
             Row(
                 Modifier.weight(1f).horizontalScroll(rememberScrollState()),
                 verticalAlignment = Alignment.CenterVertically,

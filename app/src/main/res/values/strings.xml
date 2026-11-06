@@ -161,7 +161,7 @@
     <string name="zalaczniki">attachments</string>
     <string name="zalacznikow">attachments</string>
     <string name="dalej">Next</string>
-    <string name="do">To:</string>
+    <string name="do_odbiorcy">To:</string>
     <string name="usun_odbiorce">Remove recipient</string>
     <string name="imie_lub_numer">Name or number</string>
     <string name="dodaj_kolejna_osobe">Add another person</string>
@@ -397,6 +397,7 @@
     <string name="wczytaj_starsze">Load older</string>
     <string name="pokaz_kontakt">View contact</string>
     <string name="dodaj_do_kontaktow">Add to contacts</string>
+    <string name="brak_aplikacji_kontaktow">No contacts app to add this number</string>
     <string name="szczegoly_rozmowy">Conversation details</string>
     <string name="wlacz_powiadomienia">Unmute notifications</string>
     <string name="wycisz_powiadomienia">Mute notifications</string>

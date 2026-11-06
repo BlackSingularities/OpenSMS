@@ -9,6 +9,7 @@ import android.database.ContentObserver
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import android.provider.ContactsContract
 import android.provider.Telephony
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -161,7 +162,23 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         override fun onChange(selfChange: Boolean) = scheduleReload()
     }
 
+    // Nowy albo zmieniony kontakt (też z karty SIM) – nazwy w pamięci podręcznej są już nieaktualne,
+    // także zapamiętane „brak kontaktu dla tego numeru”.
+    private var contactsJob: Job? = null
+    private val contactsObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
+        override fun onChange(selfChange: Boolean) {
+            contactsJob?.cancel()
+            contactsJob = viewModelScope.launch {
+                delay(500)
+                Contacts.clearCache()
+                reload()
+                loadContacts()
+            }
+        }
+    }
+
     init {
+        watchContacts()
         runCatching { ctx.contentResolver.registerContentObserver(Uri.parse("content://mms-sms/"), true, observer) }
         runCatching { ctx.contentResolver.registerContentObserver(Telephony.Sms.CONTENT_URI, true, observer) }
         runCatching { ctx.contentResolver.registerContentObserver(Telephony.Mms.CONTENT_URI, true, observer) }
@@ -172,8 +189,19 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         purgeTrash()
     }
 
+    private var contactsWatched = false
+
+    /** Obserwator kontaktów działa dopiero z uprawnieniem – stąd ponowna próba po jego nadaniu. */
+    private fun watchContacts() {
+        if (contactsWatched || !Contacts.hasPermission(ctx)) return
+        contactsWatched = runCatching {
+            ctx.contentResolver.registerContentObserver(ContactsContract.Contacts.CONTENT_URI, true, contactsObserver)
+        }.isSuccess
+    }
+
     override fun onCleared() {
         ctx.contentResolver.unregisterContentObserver(observer)
+        runCatching { ctx.contentResolver.unregisterContentObserver(contactsObserver) }
     }
 
     fun refreshDefault() {
@@ -367,6 +395,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun onPermissionsChanged() {
+        watchContacts()
         Contacts.clearCache()
         reload()
         loadSims()
