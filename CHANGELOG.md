@@ -2,6 +2,8 @@
 
 ## 1.4.2
 
+- Zgłaszanie błędów i sugestii: nowa pozycja „Zgłoś błąd lub sugestię” – opis trafia prosto do autora przez redzikowski.com, e-mail jest opcjonalny.
+- Po nieoczekiwanym zamknięciu aplikacja przy następnym uruchomieniu proponuje wysłanie raportu o błędzie – tylko za zgodą użytkownika.
 - „Dodaj do kontaktów” w menu rozmowy znów działa także z aplikacjami kontaktów, które nie obsługują „dodaj lub edytuj” (np. OpenDial); gdy żadna aplikacja nie odpowie, pojawia się komunikat.
 - Nazwy nadawców odświeżają się od razu po dodaniu albo zmianie kontaktu (także na karcie SIM) – bez restartu aplikacji.
 - Poprawka budowania: wersje 1.4.0 i 1.4.1 nie powstały przez zasób o nazwie zastrzeżonej w Javie.

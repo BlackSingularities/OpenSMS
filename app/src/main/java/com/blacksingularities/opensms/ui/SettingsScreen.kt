@@ -34,6 +34,7 @@ import androidx.compose.material.icons.rounded.Fingerprint
 import androidx.compose.material.icons.rounded.ScreenLockPortrait
 import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material.icons.rounded.Email
+import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.automirrored.rounded.ShortText
@@ -458,6 +459,9 @@ private fun ColumnScope.MainSettings(vm: AppViewModel, onRequestPermissions: () 
         }
         ActionRow(Icons.Rounded.Email, tr(R.string.kontakt), "kontakt@redzikowski.com") {
             runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("mailto:kontakt@redzikowski.com"))) }
+        }
+        com.blacksingularities.opensms.feedback.FeedbackEntry { open ->
+            ActionRow(Icons.Rounded.BugReport, com.blacksingularities.opensms.feedback.FeedbackText.entryTitle, com.blacksingularities.opensms.feedback.FeedbackText.entrySubtitle) { open() }
         }
         ActionRow(Icons.Rounded.LocalCafe, tr(R.string.postaw_kawe), tr(R.string.wesprzyj_rozwoj_na_buycoffee_to)) {
             runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://buycoffee.to/adamredzikowski"))) }

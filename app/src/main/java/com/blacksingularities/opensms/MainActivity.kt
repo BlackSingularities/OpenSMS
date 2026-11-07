@@ -1,5 +1,7 @@
 package com.blacksingularities.opensms
 
+import com.blacksingularities.opensms.feedback.Feedback
+import com.blacksingularities.opensms.feedback.CrashReportPrompt
 import android.Manifest
 import android.app.KeyguardManager
 import android.hardware.biometrics.BiometricPrompt
@@ -44,9 +46,11 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
+        Feedback.install(this, "opensms")
         UpdateManager.clearUpdatedNotification(this)
         setContent {
             OpenSmsTheme {
+                CrashReportPrompt()
                 AppRoot(
                     vm = vm,
                     onRequestDefault = ::requestDefaultRole,
