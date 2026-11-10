@@ -15,21 +15,20 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
+import android.provider.ContactsContract
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.app.Person
 import androidx.core.app.RemoteInput
 import androidx.core.content.LocusIdCompat
-import androidx.core.graphics.drawable.IconCompat
 import com.blacksingularities.opensms.MainActivity
 import com.blacksingularities.opensms.R
 import com.blacksingularities.opensms.data.Contacts
 import com.blacksingularities.opensms.data.canReplyTo
+import com.blacksingularities.opensms.data.Message
 import com.blacksingularities.opensms.data.MessageStore
 import com.blacksingularities.opensms.data.Settings
 import com.blacksingularities.opensms.sms.MessageSender
@@ -89,34 +88,39 @@ object Notifier {
         val addresses = store.threadAddresses(threadId).ifEmpty { listOf(unread.last().address) }
         val title = Contacts.title(context, addresses)
         val group = addresses.size > 1
-        val me = Person.Builder().setName(tr(R.string.ty)).build()
+        val me = Person.Builder().setName(tr(R.string.ty)).setKey("me").build()
         val style = NotificationCompat.MessagingStyle(me)
         if (group) style.setConversationTitle(title).setGroupConversation(true)
-        val avatar = Contacts.lookup(context, addresses.first())?.photo?.let { loadIcon(context, it) }
-        for (m in unread) {
-            val info = Contacts.lookup(context, m.address)
-            val person = Person.Builder()
-                .setName(info?.name ?: m.address)
-                .setKey(m.address)
-                .apply { if (!group && avatar != null) setIcon(avatar) }
+        // Każdy nadawca ma swój awatar (zdjęcie albo inicjały) – Android pokazuje go zamiast ikony aplikacji.
+        val people = HashMap<String, Person>()
+        fun person(address: String): Person = people.getOrPut(address) {
+            val face = NotificationAvatars.face(context, address)
+            val contact = Contacts.lookup(context, address)
+            Person.Builder()
+                .setName(face.name)
+                .setKey(address)
+                .setIcon(runCatching { NotificationAvatars.icon(context, face) }.getOrNull())
+                .apply {
+                    // Powiązanie z kontaktem: tryb „Nie przeszkadzać” rozpoznaje wtedy ważne osoby.
+                    val key = contact?.lookupKey
+                    if (contact != null && key != null) {
+                        setUri(ContactsContract.Contacts.getLookupUri(contact.contactId, key).toString())
+                    }
+                }
                 .build()
-            val text = when {
-                !s.notificationPreview -> tr(R.string.nowa_wiadomosc)
-                m.pendingUrl != null -> tr(R.string.mms_do_pobrania)
-                m.body.isNotBlank() -> m.body
-                m.media.any { it.isImage } -> tr(R.string.zdjecie)
-                m.media.any { it.isVideo } -> "🎬 Film"
-                m.media.any { it.isAudio } -> "🎵 Nagranie"
-                else -> tr(R.string.zalacznik)
-            }
-            style.addMessage(text, m.date, person)
         }
+        val texts = unread.map { m -> previewText(s.notificationPreview, m) }
+        unread.forEachIndexed { i, m -> style.addMessage(texts[i], m.date, person(m.address)) }
+        val last = unread.last()
         val n = NotificationCompat.Builder(context, CHANNEL_MESSAGES)
             .setSmallIcon(R.drawable.ic_notification)
             .setColor(0xFF000000.toInt())
             .setStyle(style)
             .setContentTitle(title)
-            .setContentText(if (s.notificationPreview) unread.last().body else tr(R.string.nowa_wiadomosc))
+            .setContentText(texts.last())
+            .setLargeIcon(NotificationAvatars.largeIcon(context, addresses))
+            .setWhen(last.date)
+            .setShowWhen(true)
             .setContentIntent(openThreadIntent(context, threadId))
             .setDeleteIntent(action(context, NotificationActionReceiver.ACTION_DISMISS, threadId))
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
@@ -134,6 +138,8 @@ object Notifier {
             .setPublicVersion(
                 NotificationCompat.Builder(context, CHANNEL_MESSAGES)
                     .setSmallIcon(R.drawable.ic_notification)
+                    .setColor(0xFF000000.toInt())
+                    .setWhen(last.date)
                     .setContentTitle("OpenSMS")
                     .setContentText(if (unread.size == 1) tr(R.string.nowa_wiadomosc) else tr(R.string.nowe_wiadomosci_1, unread.size))
                     .build(),
@@ -156,7 +162,7 @@ object Notifier {
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE,
             )
             n.addAction(
-                NotificationCompat.Action.Builder(R.drawable.ic_notification, tr(R.string.odpowiedz_2), replyIntent)
+                NotificationCompat.Action.Builder(R.drawable.ic_action_reply, tr(R.string.odpowiedz_2), replyIntent)
                     .addRemoteInput(reply)
                     .setAllowGeneratedReplies(true)
                     .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_REPLY)
@@ -165,23 +171,23 @@ object Notifier {
             )
         }
         n.addAction(
-            NotificationCompat.Action.Builder(R.drawable.ic_notification, tr(R.string.przeczytane), action(context, NotificationActionReceiver.ACTION_READ, threadId))
+            NotificationCompat.Action.Builder(R.drawable.ic_action_read, tr(R.string.przeczytane), action(context, NotificationActionReceiver.ACTION_READ, threadId))
                 .setSemanticAction(NotificationCompat.Action.SEMANTIC_ACTION_MARK_AS_READ)
                 .setShowsUserInterface(false)
                 .build(),
         )
         if (s.copyCodeAction) {
-            OneTimeCode.find(unread.last().body)?.let { code ->
+            OneTimeCode.find(last.body)?.let { code ->
                 val copy = Intent(context, NotificationActionReceiver::class.java)
                     .setAction(NotificationActionReceiver.ACTION_COPY)
                     .putExtra(EXTRA_THREAD, threadId)
                     .putExtra(NotificationActionReceiver.EXTRA_CODE, code)
                 n.addAction(
                     NotificationCompat.Action.Builder(
-                        R.drawable.ic_notification,
+                        R.drawable.ic_action_copy,
                         tr(R.string.kopiuj_1, code),
                         PendingIntent.getBroadcast(context, threadId.toInt() + 7, copy, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE),
-                    ).build(),
+                    ).setShowsUserInterface(false).build(),
                 )
             }
         }
@@ -198,9 +204,13 @@ object Notifier {
             context.contentResolver.query(uri, arrayOf("thread_id"), null, null, null)?.use { c -> if (c.moveToFirst()) c.getLong(0) else null }
         }.getOrNull() ?: return
         if (threadId == activeThread) return
-        val title = Contacts.title(context, MessageStore(context).threadAddresses(threadId))
+        val addresses = MessageStore(context).threadAddresses(threadId)
+        val title = Contacts.title(context, addresses)
         val n = NotificationCompat.Builder(context, CHANNEL_ALERTS)
             .setSmallIcon(R.drawable.ic_notification)
+            .setColor(0xFF000000.toInt())
+            .setLargeIcon(NotificationAvatars.largeIcon(context, addresses))
+            .setCategory(NotificationCompat.CATEGORY_ERROR)
             .setContentTitle(tr(R.string.nie_wyslano_do_1, title))
             .setContentText(tr(R.string.s_1_dotknij_aby_ponowic, reason))
             .setContentIntent(openThreadIntent(context, threadId))
@@ -211,9 +221,12 @@ object Notifier {
 
     fun showMmsDownloadFailed(context: Context, threadId: Long) {
         if (!canNotify(context)) return
-        val title = Contacts.title(context, MessageStore(context).threadAddresses(threadId))
+        val addresses = MessageStore(context).threadAddresses(threadId)
+        val title = Contacts.title(context, addresses)
         val n = NotificationCompat.Builder(context, CHANNEL_ALERTS)
             .setSmallIcon(R.drawable.ic_notification)
+            .setColor(0xFF000000.toInt())
+            .setLargeIcon(NotificationAvatars.largeIcon(context, addresses))
             .setContentTitle(tr(R.string.mms_od_1, title))
             .setContentText(tr(R.string.nie_udalo_sie_pobrac_wlacz))
             .setContentIntent(openThreadIntent(context, threadId))
@@ -226,6 +239,8 @@ object Notifier {
         if (!canNotify(context)) return
         val n = NotificationCompat.Builder(context, CHANNEL_ALERTS)
             .setSmallIcon(R.drawable.ic_notification)
+            .setColor(0xFF000000.toInt())
+            .setLargeIcon(NotificationAvatars.largeIcon(context, MessageStore(context).threadAddresses(threadId)))
             .setContentTitle(tr(R.string.wyslano_zaplanowana_wiadomosc))
             .setContentText(tr(R.string.do_1, title))
             .setContentIntent(openThreadIntent(context, threadId))
@@ -248,6 +263,8 @@ object Notifier {
         }
         val n = NotificationCompat.Builder(context, CHANNEL_MESSAGES)
             .setSmallIcon(R.drawable.ic_notification)
+            .setColor(0xFF000000.toInt())
+            .setLargeIcon(NotificationAvatars.largeIcon(context, m.addresses))
             .setContentTitle(tr(R.string.wyslac_zaplanowana_wiadomosc))
             .setContentText(tr(R.string.do_tresc_1, title, m.text))
             .setStyle(NotificationCompat.BigTextStyle().bigText(tr(R.string.do_tresc_nl_1, title, m.text)))
@@ -276,13 +293,16 @@ object Notifier {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
-    private fun loadIcon(context: Context, uri: Uri): IconCompat? = runCatching {
-        val bmp: Bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, uri)) { d, _, _ ->
-            d.setTargetSize(128, 128)
-            d.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
-        }
-        IconCompat.createWithAdaptiveBitmap(bmp)
-    }.getOrNull()
+    /** Treść jednej wiadomości w powiadomieniu; załączniki opisane słowem, gdy brak tekstu. */
+    private fun previewText(preview: Boolean, m: Message): String = when {
+        !preview -> tr(R.string.nowa_wiadomosc)
+        m.pendingUrl != null -> tr(R.string.mms_do_pobrania)
+        m.body.isNotBlank() -> m.body.trim()
+        m.media.any { it.isImage } -> tr(R.string.zdjecie)
+        m.media.any { it.isVideo } -> "🎬 " + tr(R.string.film)
+        m.media.any { it.isAudio } -> "🎵 " + tr(R.string.nagranie)
+        else -> tr(R.string.zalacznik)
+    }
 
     private const val FAILED_BASE = 1_000_000
     private const val SCHEDULED_BASE = 2_000_000

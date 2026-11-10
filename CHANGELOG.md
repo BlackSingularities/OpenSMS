@@ -1,5 +1,14 @@
 # Zmiany
 
+## 1.4.3
+
+- **Powiadomienia z awatarem nadawcy**: zamiast ikony aplikacji widać zdjęcie kontaktu albo – gdy go nie ma – inicjały na kolorowym tle, dokładnie jak w aplikacji (z uwzględnieniem przełącznika „Kolorowe awatary”). Rozmowy grupowe mają awatar z połówek dwóch uczestników, a każdy nadawca w grupie własne kółko.
+- Ten sam awatar ma skrót rozmowy w sekcji „Rozmowy” Androida i w arkuszu udostępniania.
+- Powiadomienia o nieudanej wysyłce, MMS do pobrania i zaplanowanych wiadomościach też pokazują awatar odbiorcy.
+- Nadawca w powiadomieniu jest powiązany z kontaktem, więc tryb „Nie przeszkadzać” przepuszcza wiadomości od osób oznaczonych jako ważne.
+- Porządniejsza treść: godzina ostatniej wiadomości, opis załącznika („Film”, „Nagranie”) w języku telefonu zamiast zawsze po polsku, podgląd w zwiniętym powiadomieniu także dla samych załączników.
+- Własne ikony akcji „Odpowiedz”, „Przeczytane” i „Kopiuj kod” (widoczne m.in. na zegarkach i w samochodzie).
+
 ## 1.4.2
 
 - Zgłaszanie błędów i sugestii: nowa pozycja „Zgłoś błąd lub sugestię” – opis trafia prosto do autora przez redzikowski.com, e-mail jest opcjonalny.

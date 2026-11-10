@@ -2,9 +2,6 @@ package com.blacksingularities.opensms.notify
 
 import android.content.Context
 import android.content.Intent
-import android.graphics.Bitmap
-import android.graphics.ImageDecoder
-import android.net.Uri
 import androidx.core.app.Person
 import androidx.core.content.LocusIdCompat
 import androidx.core.content.pm.ShortcutInfoCompat
@@ -33,10 +30,11 @@ object ConversationShortcuts {
         val id = id(threadId)
         val title = Contacts.title(context, addresses).ifBlank { addresses.first() }
         val people = addresses.map { a ->
-            Person.Builder().setName(Contacts.lookup(context, a)?.name ?: a).setKey(a).build()
+            Person.Builder().setName(NotificationAvatars.face(context, a).name).setKey(a).build()
         }
-        val photo = if (addresses.size == 1) Contacts.lookup(context, addresses[0])?.photo else null
-        val icon = photo?.let { loadIcon(context, it) } ?: IconCompat.createWithResource(context, R.mipmap.ic_launcher)
+        // Awatar rozmowy (zdjęcie, inicjały albo połówki grupy) – nigdy ikona aplikacji.
+        val icon = runCatching { NotificationAvatars.conversationIcon(context, addresses) }.getOrNull()
+            ?: IconCompat.createWithResource(context, R.mipmap.ic_launcher)
         val intent = Intent(context, MainActivity::class.java)
             .setAction(Intent.ACTION_VIEW)
             .putExtra(Notifier.EXTRA_THREAD, threadId)
@@ -60,12 +58,4 @@ object ConversationShortcuts {
         runCatching { ShortcutManagerCompat.removeDynamicShortcuts(context, ids) }
         runCatching { ShortcutManagerCompat.removeLongLivedShortcuts(context, ids) }
     }
-
-    private fun loadIcon(context: Context, uri: Uri): IconCompat? = runCatching {
-        val bmp: Bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(context.contentResolver, uri)) { d, _, _ ->
-            d.setTargetSize(128, 128)
-            d.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
-        }
-        IconCompat.createWithAdaptiveBitmap(bmp)
-    }.getOrNull()
 }
