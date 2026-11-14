@@ -1,5 +1,10 @@
 # Zmiany
 
+## 1.4.4
+
+- **Mniejszy znaczek kopiowania kodu**: jest o połowę mniejszy i siedzi w prawym górnym rogu dymka, więc nie zasłania treści wiadomości.
+- W trybie zaznaczania znaczek zostaje w tym samym miejscu i ma ten sam rozmiar.
+
 ## 1.4.3
 
 - **Powiadomienia z awatarem nadawcy**: zamiast ikony aplikacji widać zdjęcie kontaktu albo – gdy go nie ma – inicjały na kolorowym tle, dokładnie jak w aplikacji (z uwzględnieniem przełącznika „Kolorowe awatary”). Rozmowy grupowe mają awatar z połówek dwóch uczestników, a każdy nadawca w grupie własne kółko.

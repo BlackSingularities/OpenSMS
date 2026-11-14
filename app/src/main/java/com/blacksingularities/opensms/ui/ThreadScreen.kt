@@ -705,7 +705,7 @@ private fun MessageBubble(
             val anchor = codeAnchor
             if (code != null && anchor != null) {
                 CopyCodeBadge(
-                    center = anchor - bubbleOrigin,
+                    modifier = Modifier.align(Alignment.TopEnd),
                     copied = copied,
                     style = style,
                     dark = colors.lightBackground,
@@ -800,16 +800,17 @@ private fun CodeAwareText(
  */
 @Composable
 private fun CopyCodeBadge(
-    center: Offset,
+    modifier: Modifier,
     copied: Boolean,
     style: MessageStyle,
     dark: Boolean,
     bubble: Color,
     onCopy: () -> Unit,
 ) {
-    val d = style.dp(24f).coerceIn(22.dp, 32.dp)
-    val touch = d + 14.dp
-    val half = with(LocalDensity.current) { (touch / 2).roundToPx() }
+    // Mały znaczek w prawym górnym rogu dymka – nie zasłania tekstu; rozmiar stały, niezależny od trybu zaznaczania.
+    val d = style.dp(12f).coerceIn(11.dp, 16.dp)
+    val touch = d + 20.dp
+    val shift = (touch - d) / 2 - d * 0.3f
     val ring by animateColorAsState(
         if (copied) Palette.Ok.copy(alpha = 0.7f) else if (dark) Color(0x2A000000) else Color.White.copy(alpha = 0.22f),
         label = "codeRing",
@@ -818,8 +819,8 @@ private fun CopyCodeBadge(
     val ink = if (copied) Palette.Ok else if (dark) Palette.Ink.copy(alpha = 0.7f) else Color.White.copy(alpha = 0.8f)
     val press by animateFloatAsState(if (copied) 1.08f else 1f, label = "codeScale")
     Box(
-        Modifier
-            .offset { IntOffset(center.x.roundToInt() - half + half / 5, center.y.roundToInt() - half) }
+        modifier
+            .offset(x = shift, y = -shift)
             .size(touch)
             .clip(CircleShape)
             .clickable(onClickLabel = tr(R.string.kopiuj_kod), onClick = onCopy),
@@ -829,7 +830,7 @@ private fun CopyCodeBadge(
             Modifier
                 .graphicsLayer { scaleX = press; scaleY = press }
                 .size(d)
-                .shadow(3.dp, CircleShape)
+                .shadow(2.dp, CircleShape)
                 .clip(CircleShape)
                 .background(fill)
                 .border(1.dp, ring, CircleShape),
@@ -840,7 +841,7 @@ private fun CopyCodeBadge(
                     if (done) Icons.Rounded.Check else Icons.Rounded.ContentCopy,
                     if (done) tr(R.string.skopiowano) else tr(R.string.kopiuj_kod),
                     tint = ink,
-                    modifier = Modifier.size(d * 0.55f),
+                    modifier = Modifier.size(d * 0.6f),
                 )
             }
         }
@@ -898,7 +899,7 @@ private fun PreviewCodeBubble(style: MessageStyle, max: Dp) {
                     onAnchor = { anchor = it },
                 )
             }
-            anchor?.let { CopyCodeBadge(it - origin, copied, style, c.lightBackground, c.background) { copied = true } }
+            if (anchor != null) CopyCodeBadge(Modifier.align(Alignment.TopEnd), copied, style, c.lightBackground, c.background) { copied = true }
         }
         if (style.timeMode != TimeMode.TAP) PreviewTime(style, "18:07", out = false)
     }
