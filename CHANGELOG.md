@@ -1,5 +1,9 @@
 # Zmiany
 
+## 1.4.5
+
+- Ikona aplikacji bez tła: na ekranie głównym widać sam kolorowy emblemat, spójnie z trybem „Bez tła” w OpenDesktop.
+
 ## 1.4.4
 
 - **Mniejszy znaczek kopiowania kodu**: jest o połowę mniejszy i siedzi w prawym górnym rogu dymka, więc nie zasłania treści wiadomości.
