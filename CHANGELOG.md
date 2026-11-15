@@ -1,5 +1,13 @@
 # Zmiany
 
+## 1.4.6
+
+- **Znaczek kopiowania kodu pojawia się tylko przy prawdziwym kodzie**: wiadomości reklamowe banków, w których słowa „BLIK”, „transakcja” czy „potwierdź” występują na co dzień, nie zapalają już kółka z kodem.
+- Sam ciąg cyfr nie wystarczy – potrzebna jest zapowiedź kodu w pobliżu: albo jednoznaczna („kod weryfikacyjny”, „OTP”, „3D Secure”), albo słabsze słowo wraz z wyraźnym przypisaniem („kod: 123456”, „kod to 123456”).
+- Numery telefonu (infolinia, numer z przedrostkiem +48) i adresy stron nie są już brane za kod.
+- Kwoty, procenty, RRSO, raty, numery rachunków i umów oraz daty zapisane jednym ciągiem („12122026”) są pomijane.
+- Kod musi stać blisko swojej zapowiedzi, a odległość liczona jest od najbliższego jej wystąpienia, nie od pierwszego słowa w wiadomości.
+
 ## 1.4.5
 
 - Ikona aplikacji bez tła: na ekranie głównym widać sam kolorowy emblemat, spójnie z trybem „Bez tła” w OpenDesktop.
