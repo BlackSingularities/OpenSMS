@@ -583,7 +583,9 @@ private fun MessageBubble(
     // Emotikony tekstowe pokazujemy jako emoji; w bazie zostaje oryginalna treść wiadomości.
     val body = remember(m.body, style.emoticons) { if (style.emoticons) Emoticons.apply(m.body) else m.body }
     val onlyEmoji = style.bigEmoji && body.isNotBlank() && m.media.isEmpty() && body.length <= 12 && body.none { it.isLetterOrDigit() }
-    val code = remember(m.body, m.incoming) { if (m.incoming) OneTimeCode.find(m.body) else null }
+    // Kod liczymy z treści pokazywanej w dymku, żeby zakres zgadzał się po zamianie emotikon na emoji.
+    val found = remember(body, m.incoming) { if (m.incoming) OneTimeCode.findIn(body) else null }
+    val code = found?.code
     var copied by remember(code) { mutableStateOf(false) }
     LaunchedEffect(copied) {
         if (copied) {
@@ -691,9 +693,8 @@ private fun MessageBubble(
                 }
                 if (body.isNotEmpty()) {
                     CodeAwareText(
-                        text = body,
-                        annotated = linkify(body, highlight, colors.lightBackground, code, copied, copyCode),
-                        code = code,
+                        annotated = linkify(body, highlight, colors.lightBackground, found?.range, copied, copyCode),
+                        codeRange = found?.range,
                         style = style,
                         color = colors.content,
                         fontSize = if (onlyEmoji) style.sp(40f) else style.sp(16f),
@@ -761,9 +762,8 @@ private fun ReactionChips(reactions: List<Reactions.Pick>, style: MessageStyle) 
  */
 @Composable
 private fun CodeAwareText(
-    text: String,
     annotated: AnnotatedString,
-    code: String?,
+    codeRange: IntRange?,
     style: MessageStyle,
     color: Color,
     fontSize: TextUnit,
@@ -771,7 +771,8 @@ private fun CodeAwareText(
     onAnchor: (Offset?) -> Unit,
 ) {
     var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
-    val range = remember(text, code) { code?.let { findCodeRange(text, it) } }
+    val range = codeRange
+    // Zakres przychodzi prosto z detektora, więc nie może rozjechać się z kodem w dymku.
     Box(Modifier.padding(horizontal = style.dp(14f), vertical = style.dp(9f))) {
         Text(
             annotated,
@@ -888,10 +889,10 @@ private fun PreviewCodeBubble(style: MessageStyle, max: Dp) {
                     .background(c.background)
                     .then(if (c.outline != null) Modifier.border(1.dp, c.outline, sh) else Modifier),
             ) {
+                val previewRange = remember(text) { OneTimeCode.findIn(text)?.range }
                 CodeAwareText(
-                    text = text,
-                    annotated = linkify(text, null, c.lightBackground, "482913", copied) { copied = true },
-                    code = "482913",
+                    annotated = linkify(text, null, c.lightBackground, previewRange, copied) { copied = true },
+                    codeRange = previewRange,
                     style = style,
                     color = c.content,
                     fontSize = style.sp(16f),
@@ -1077,14 +1078,13 @@ private fun linkify(
     text: String,
     highlight: String?,
     dark: Boolean,
-    code: String? = null,
+    codeRange: IntRange? = null,
     copied: Boolean = false,
     onCode: () -> Unit = {},
 ): AnnotatedString {
     data class Span(val start: Int, val end: Int, val url: String)
     val spans = ArrayList<Span>()
     // Kod w treści: monospace na delikatnym tle, dotknięcie kopiuje. Linki nie mogą na niego nachodzić.
-    val codeRange = code?.let { findCodeRange(text, it) }
     if (codeRange != null) spans += Span(codeRange.first, codeRange.last + 1, "")
     fun collect(regex: java.util.regex.Pattern, toUrl: (String) -> String) {
         val m = regex.matcher(text)
@@ -1132,17 +1132,6 @@ private fun linkify(
     }
 }
 
-/** Miejsce kodu w treści – także zapisanego ze spacją lub myślnikiem („482 913”, „482-913”). */
-private fun findCodeRange(text: String, code: String): IntRange? {
-    val i = text.indexOf(code)
-    if (i >= 0) return i until i + code.length
-    if (code.length == 6 && code.all { it.isDigit() }) {
-        val r = Regex(Regex.escape(code.substring(0, 3)) + "[- ]" + Regex.escape(code.substring(3))).find(text)
-        if (r != null) return r.range
-    }
-    return null
-}
-
 @Composable
 private fun MessageActions(
     vm: AppViewModel,
@@ -1155,7 +1144,8 @@ private fun MessageActions(
     onDelete: () -> Unit,
 ) {
     val context = LocalContext.current
-    val code = remember(m.body) { OneTimeCode.find(m.body) }
+    // Tak samo jak znaczek w dymku: kod tylko w wiadomościach przychodzących.
+    val code = remember(m.body, m.incoming) { if (m.incoming) OneTimeCode.find(m.body) else null }
     ActionSheet(title = m.body.take(120).ifEmpty { if (m.media.isNotEmpty()) tr(R.string.zalacznik_mms) else null }, onDismiss = onDismiss) {
         if (canReact && m.body.isNotBlank() && m.box != MsgBox.FAILED) {
             Row(

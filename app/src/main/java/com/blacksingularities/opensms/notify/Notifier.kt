@@ -176,7 +176,8 @@ object Notifier {
                 .setShowsUserInterface(false)
                 .build(),
         )
-        if (s.copyCodeAction) {
+        // Kod kopiujemy tylko z wiadomości przychodzącej – tak samo jak znaczek w dymku rozmowy.
+        if (s.copyCodeAction && last.incoming) {
             OneTimeCode.find(last.body)?.let { code ->
                 val copy = Intent(context, NotificationActionReceiver::class.java)
                     .setAction(NotificationActionReceiver.ACTION_COPY)

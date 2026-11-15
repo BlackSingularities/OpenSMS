@@ -10,7 +10,8 @@ package com.blacksingularities.opensms.util
  * znaczka kopiowania.
  */
 object OneTimeCode {
-    private const val MAX_LEN = 400
+    /** Sklejony SMS wieloczęściowy i tekst MMS-a bywa dłuższy niż jedna wiadomość. */
+    private const val MAX_LEN = 1200
 
     /** Jak daleko od zapowiedzi może stać kod (w znakach). */
     private const val STRONG_DISTANCE = 48
@@ -55,7 +56,12 @@ object OneTimeCode {
         "do zaplaty", "do zapłaty", "prowizj", "odsetk", "infolini",
     )
 
-    fun find(text: String?): String? {
+    /** Znaleziony kod wraz z miejscem w treści – jedno źródło prawdy dla dymka, menu i powiadomienia. */
+    data class Found(val code: String, val range: IntRange)
+
+    fun find(text: String?): String? = findIn(text)?.code
+
+    fun findIn(text: String?): Found? {
         if (text.isNullOrBlank() || text.length > MAX_LEN) return null
         val lower = text.lowercase()
 
@@ -75,13 +81,15 @@ object OneTimeCode {
             .filter { accept(text, lower, it.range, blocked, anchors, maxDistance, requireAssign) }
             .filterNot { looksLikeDate(it.groupValues[1]) }
             .minByOrNull { distance(anchors, it.range.first) }
-        if (numeric != null) return numeric.groupValues[1].replace(" ", "").replace("-", "")
+        if (numeric != null) {
+            return Found(numeric.groupValues[1].replace(" ", "").replace("-", ""), numeric.range)
+        }
 
         return alnumRegex.findAll(text)
             .filter { m -> m.groupValues[1].any(Char::isDigit) && m.groupValues[1].any(Char::isLetter) }
             .filter { accept(text, lower, it.range, blocked, anchors, maxDistance, requireAssign) }
             .minByOrNull { distance(anchors, it.range.first) }
-            ?.groupValues?.get(1)
+            ?.let { Found(it.groupValues[1], it.range) }
     }
 
     private fun accept(

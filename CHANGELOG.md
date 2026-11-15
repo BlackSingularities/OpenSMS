@@ -1,5 +1,13 @@
 # Zmiany
 
+## 1.4.7
+
+- **Kod, znaczek i podświetlenie zawsze w zgodzie**: detektor zwraca teraz miejsce kodu w treści, więc wyróżnienie w dymku nie rozjeżdża się z tym, co kopiuje znaczek. Działa też dla kodów pisanych ze spacją lub myślnikiem w dowolnym układzie, nie tylko „123 456”.
+- Menu po przytrzymaniu wiadomości pokazuje „Kopiuj kod” tylko przy wiadomościach przychodzących – tak samo jak znaczek w dymku.
+- Akcja „Kopiuj kod” w powiadomieniu również dotyczy wyłącznie wiadomości przychodzącej.
+- Kod bywa wykrywany w dłuższych wiadomościach: limit podniesiony z 400 do 1200 znaków, więc sklejony SMS wieloczęściowy i tekst MMS-a nie przepadają.
+- Zamiana emotikon na emoji nie przesuwa już podświetlenia kodu.
+
 ## 1.4.6
 
 - **Znaczek kopiowania kodu pojawia się tylko przy prawdziwym kodzie**: wiadomości reklamowe banków, w których słowa „BLIK”, „transakcja” czy „potwierdź” występują na co dzień, nie zapalają już kółka z kodem.

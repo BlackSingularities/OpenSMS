@@ -45,6 +45,20 @@ class OneTimeCodeTest {
     }
 
     @Test
+    fun reportsCodeRangeInText() {
+        val t = "Twoj kod weryfikacyjny to 482 913"
+        val f = OneTimeCode.findIn(t)!!
+        assertEquals("482913", f.code)
+        assertEquals("482 913", t.substring(f.range.first, f.range.last + 1))
+    }
+
+    @Test
+    fun findsCodeInLongMultipartMessage() {
+        val filler = "Dziekujemy za skorzystanie z naszych uslug. ".repeat(9)
+        assertEquals("914273", OneTimeCode.find(filler + "Twoj kod weryfikacyjny to 914273."))
+    }
+
+    @Test
     fun versionCompare() {
         assertTrue(isNewer("0.1.1", "0.1.0"))
         assertTrue(isNewer("0.2.0", "0.1.9"))
