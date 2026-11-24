@@ -1,5 +1,8 @@
 package com.blacksingularities.opensms.sms
 
+import com.blacksingularities.opensms.R
+import com.blacksingularities.opensms.tr
+
 import android.app.PendingIntent
 import android.content.ContentValues
 import android.content.Context
@@ -33,7 +36,7 @@ object MessageSender {
         subId: Int = -1,
         subject: String? = null,
     ): SendResult {
-        require(recipients.isNotEmpty()) { "Brak odbiorcy" }
+        require(recipients.isNotEmpty()) { tr(R.string.brak_odbiorcy) }
         val settings = Settings.get(context)
         var body = text.trim()
         if (settings.signature.isNotBlank() && body.isNotEmpty()) body += "\n" + settings.signature.trim()
@@ -72,7 +75,7 @@ object MessageSender {
             put(Telephony.Sms.SUBSCRIPTION_ID, subId)
             put(Telephony.Sms.STATUS, if (settings.deliveryReports) Telephony.Sms.STATUS_PENDING else Telephony.Sms.STATUS_NONE)
         }
-        val uri = context.contentResolver.insert(Telephony.Sms.CONTENT_URI, values) ?: error("Nie można zapisać wiadomości")
+        val uri = context.contentResolver.insert(Telephony.Sms.CONTENT_URI, values) ?: error(tr(R.string.nie_mozna_zapisac_wiadomosci))
         transmit(context, uri, address, body, subId, settings.deliveryReports)
         return threadId
     }

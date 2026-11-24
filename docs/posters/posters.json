@@ -1,0 +1,23 @@
+{
+  "slug": "opensms",
+  "name": "OpenSMS",
+  "label": "SMS · MMS · rozmowy grupowe",
+  "icon": "icon.png",
+  "url": "https://redzikowski.com/portfolio/opensms",
+  "posters": [
+    {
+      "platform": "android",
+      "file": "android.png",
+      "title": "Wiadomości, które *zostają w telefonie*",
+      "lead": "SMS, MMS i rozmowy grupowe z filtrem spamu, wiadomościami zaplanowanymi i obsługą dwóch kart SIM.",
+      "shots": [
+        { "src": "../screenshots/android/01-rozmowy.png", "caption": "Rozmowy" },
+        { "src": "../screenshots/android/02-rozmowa.png", "caption": "Czat" },
+        { "src": "../screenshots/android/03-filtr-spamu.png", "caption": "Filtr spamu" },
+        { "src": "../screenshots/android/04-ustawienia.png", "caption": "Wygląd" }
+      ],
+      "features": ["SMS, MMS i grupy", "reakcje emoji", "blokowanie numerów i słów", "wiadomości zaplanowane", "dwie karty SIM", "kopia i przywracanie"],
+      "meta": "Android 10 lub nowszy"
+    }
+  ]
+}

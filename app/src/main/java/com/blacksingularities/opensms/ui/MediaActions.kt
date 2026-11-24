@@ -1,5 +1,8 @@
 package com.blacksingularities.opensms.ui
 
+import com.blacksingularities.opensms.R
+import com.blacksingularities.opensms.tr
+
 import android.content.ActivityNotFoundException
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -41,7 +44,7 @@ object MediaActions {
         val dir = File(context.cacheDir, "shared").apply { mkdirs() }
         val file = File(dir, fileName(mime, name))
         context.contentResolver.openInputStream(uri)?.use { input -> file.outputStream().use { input.copyTo(it) } }
-            ?: error("Nie można odczytać załącznika")
+            ?: error(tr(R.string.nie_mozna_odczytac_zalacznika))
         return FileProvider.getUriForFile(context, context.packageName + ".files", file)
     }
 
@@ -53,7 +56,7 @@ object MediaActions {
         try {
             context.startActivity(intent)
         } catch (_: ActivityNotFoundException) {
-            error("Brak aplikacji do otwarcia pliku")
+            error(tr(R.string.brak_aplikacji_do_otwarcia_pliku))
         }
     }
 
@@ -63,12 +66,12 @@ object MediaActions {
             .setType(mime)
             .putExtra(Intent.EXTRA_STREAM, shared)
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        context.startActivity(Intent.createChooser(intent, "Udostępnij").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        context.startActivity(Intent.createChooser(intent, tr(R.string.udostepnij)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
     fun shareText(context: Context, text: String) {
         val intent = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text)
-        context.startActivity(Intent.createChooser(intent, "Udostępnij").addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        context.startActivity(Intent.createChooser(intent, tr(R.string.udostepnij)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
     }
 
     /** Zapis do galerii (zdjęcia, filmy) albo do Pobranych (pozostałe pliki). */
@@ -86,7 +89,7 @@ object MediaActions {
             put(MediaStore.MediaColumns.RELATIVE_PATH, "$dir/OpenSMS")
             put(MediaStore.MediaColumns.IS_PENDING, 1)
         }
-        val target = cr.insert(collection, values) ?: error("Nie można zapisać pliku")
+        val target = cr.insert(collection, values) ?: error(tr(R.string.nie_mozna_zapisac_pliku))
         try {
             cr.openInputStream(uri)?.use { input -> cr.openOutputStream(target)?.use { input.copyTo(it) } }
             cr.update(target, ContentValues().apply { put(MediaStore.MediaColumns.IS_PENDING, 0) }, null, null)
@@ -97,7 +100,7 @@ object MediaActions {
         return "$dir/OpenSMS"
     }
 
-    fun copy(context: Context, text: String, label: String = "Wiadomość") {
+    fun copy(context: Context, text: String, label: String = tr(R.string.wiadomosc)) {
         context.getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText(label, text))
     }
 }

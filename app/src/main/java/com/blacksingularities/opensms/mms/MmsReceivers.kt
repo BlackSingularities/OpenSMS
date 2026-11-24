@@ -1,5 +1,8 @@
 package com.blacksingularities.opensms.mms
 
+import com.blacksingularities.opensms.R
+import com.blacksingularities.opensms.tr
+
 import android.app.Activity
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
@@ -216,7 +219,7 @@ class MmsStatusReceiver : BroadcastReceiver() {
                         uri.lastPathSegment?.let { s.failedMms = s.failedMms - it }
                     } else {
                         MmsSender.markFailed(context, uri)
-                        Notifier.showFailed(context, uri, "Nie udało się wysłać MMS (kod $code)")
+                        Notifier.showFailed(context, uri, tr(R.string.nie_udalo_sie_wyslac_mms, code))
                     }
                 }
                 MmsDownloader.ACTION_DOWNLOADED -> MmsDownloader.onDownloaded(context, intent, code)

@@ -1,5 +1,10 @@
 package com.blacksingularities.opensms.ui
 
+import com.blacksingularities.opensms.R
+import com.blacksingularities.opensms.tr
+
+import com.blacksingularities.opensms.ui.components.SwitchRow
+import androidx.compose.material.icons.rounded.NotificationsActive
 import android.app.DatePickerDialog
 import android.app.TimePickerDialog
 import android.net.Uri
@@ -127,20 +132,35 @@ fun Composer(vm: AppViewModel, s: Screen.Thread) {
                 }
             }
         }.getOrNull()
-        if (vcard != null) attachments = attachments + vcard else vm.toast = "Nie można odczytać kontaktu"
+        if (vcard != null) attachments = attachments + vcard else vm.toast = tr(R.string.nie_mozna_odczytac_kontaktu)
     }
 
     val sendable = (text.isNotBlank() || attachments.isNotEmpty()) && s.addresses.isNotEmpty() && vm.busy == null
+    // Pole czyści się od razu po naciśnięciu „Wyślij” – tekst nie zostaje w polu ani w szkicu.
+    // Gdy wysyłka się nie uda, treść i załączniki wracają do pola.
+    fun clearField() {
+        value = TextFieldValue("")
+        attachments = emptyList()
+        vm.saveDraft(s.threadId, "")
+    }
     fun send() {
         if (!sendable) return
         if (vm.settings.haptics) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-        vm.send(s, text, attachments, subId)
+        val sentText = text
+        val sentAttachments = attachments
+        clearField()
+        vm.send(s, sentText, sentAttachments, subId) {
+            if (value.text.isEmpty() && attachments.isEmpty()) {
+                value = TextFieldValue(sentText, TextRange(sentText.length))
+                attachments = sentAttachments
+            }
+        }
     }
 
     Column(Modifier.fillMaxWidth().background(Palette.Ink).padding(start = 8.dp, end = 8.dp, top = 4.dp, bottom = 8.dp)) {
         AnimatedVisibility(visible = attachments.isNotEmpty()) {
             Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(start = 48.dp, bottom = 6.dp),
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(start = 52.dp, bottom = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 attachments.forEach { a -> AttachmentChip(a) { attachments = attachments - a } }
@@ -170,7 +190,7 @@ fun Composer(vm: AppViewModel, s: Screen.Thread) {
                 Modifier.size(44.dp).clip(CircleShape).background(Palette.PanelHigh).clickable { attachMenu = true },
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(Icons.Rounded.Add, "Dodaj", tint = Color.White)
+                Icon(Icons.Rounded.Add, tr(R.string.dodaj), tint = Color.White)
             }
             Spacer(Modifier.width(8.dp))
             Column(
@@ -180,18 +200,21 @@ fun Composer(vm: AppViewModel, s: Screen.Thread) {
                     .background(Palette.PanelHigh)
                     .padding(horizontal = 16.dp, vertical = 11.dp),
             ) {
-                Box {
+                // Podpowiedź ma ten sam krój i wysokość linii co wpisywany tekst, więc nic nie skacze przy pierwszej literze.
+                val fieldStyle = TextStyle(color = Color.White, fontSize = (16 * vm.settings.textSize.scale).sp, lineHeight = (21 * vm.settings.textSize.scale).sp)
+                Box(contentAlignment = Alignment.CenterStart) {
                     if (text.isEmpty()) {
                         Text(
-                            if (attachments.isNotEmpty()) "Dodaj opis…" else if (s.addresses.size > 1 && vm.settings.groupAsMms) "Wiadomość grupowa (MMS)" else "Wiadomość",
-                            color = Palette.TextFaint,
-                            fontSize = 16.sp,
+                            if (attachments.isNotEmpty()) tr(R.string.dodaj_opis) else if (s.addresses.size > 1 && vm.settings.groupAsMms) tr(R.string.wiadomosc_grupowa_mms) else tr(R.string.wiadomosc),
+                            style = fieldStyle.copy(color = Palette.TextFaint),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
                         )
                     }
                     BasicTextField(
                         value = value,
                         onValueChange = { value = it },
-                        textStyle = TextStyle(color = Color.White, fontSize = (16 * vm.settings.textSize.scale).sp, lineHeight = (21 * vm.settings.textSize.scale).sp),
+                        textStyle = fieldStyle,
                         cursorBrush = SolidColor(Color.White),
                         keyboardOptions = KeyboardOptions(
                             capitalization = KeyboardCapitalization.Sentences,
@@ -216,7 +239,7 @@ fun Composer(vm: AppViewModel, s: Screen.Thread) {
                         onClick = { send() },
                         onLongClick = {
                             if (vm.settings.haptics) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            if (attachments.isEmpty()) scheduleMenu = true else vm.toast = "Planować można tylko SMS bez załączników"
+                            if (attachments.isEmpty()) scheduleMenu = true else vm.toast = tr(R.string.planowac_mozna_tylko_sms_bez)
                         },
                     ),
                 contentAlignment = Alignment.Center,
@@ -224,41 +247,41 @@ fun Composer(vm: AppViewModel, s: Screen.Thread) {
                 if (vm.busy != null) {
                     CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(20.dp))
                 } else {
-                    Icon(Icons.AutoMirrored.Rounded.Send, "Wyślij (przytrzymaj, aby zaplanować)", tint = if (sendable) Palette.Ink else Palette.TextFaint, modifier = Modifier.size(22.dp))
+                    Icon(Icons.AutoMirrored.Rounded.Send, tr(R.string.wyslij_przytrzymaj_aby_zaplanowac), tint = if (sendable) Palette.Ink else Palette.TextFaint, modifier = Modifier.size(22.dp))
                 }
             }
         }
     }
 
     if (attachMenu) {
-        ActionSheet(title = "Dodaj do wiadomości", onDismiss = { attachMenu = false }) {
-            ActionRow(Icons.Rounded.PhotoLibrary, "Zdjęcia i filmy", "Zdjęcia są zmniejszane do limitu MMS (${vm.settings.mmsLimit.label})") {
+        ActionSheet(title = tr(R.string.dodaj_do_wiadomosci), onDismiss = { attachMenu = false }) {
+            ActionRow(Icons.Rounded.PhotoLibrary, tr(R.string.zdjecia_i_filmy), tr(R.string.zdjecia_sa_zmniejszane_do_limitu, vm.settings.mmsLimit.label)) {
                 attachMenu = false
                 pickMedia.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageAndVideo))
             }
-            ActionRow(Icons.AutoMirrored.Rounded.InsertDriveFile, "Plik", "Nagranie, dokument, dowolny plik") {
+            ActionRow(Icons.AutoMirrored.Rounded.InsertDriveFile, tr(R.string.plik), tr(R.string.nagranie_dokument_dowolny_plik)) {
                 attachMenu = false
                 pickFile.launch(arrayOf("audio/*", "video/*", "image/*", "text/*", "*/*"))
             }
-            ActionRow(Icons.Rounded.ContactPage, "Wizytówka kontaktu", "Wyślij kontakt jako plik vCard") {
+            ActionRow(Icons.Rounded.ContactPage, tr(R.string.wizytowka_kontaktu), tr(R.string.wyslij_kontakt_jako_plik_vcard)) {
                 attachMenu = false
                 pickContact.launch(null)
             }
-            ActionRow(Icons.AutoMirrored.Rounded.ShortText, "Szablony", "Gotowe szybkie odpowiedzi") {
+            ActionRow(Icons.AutoMirrored.Rounded.ShortText, tr(R.string.szablony), tr(R.string.gotowe_szybkie_odpowiedzi)) {
                 attachMenu = false
                 templates = true
             }
-            ActionRow(Icons.Rounded.Schedule, "Zaplanuj wysłanie", "Albo przytrzymaj przycisk wysyłania") {
+            ActionRow(Icons.Rounded.Schedule, tr(R.string.zaplanuj_wyslanie), tr(R.string.albo_przytrzymaj_przycisk_wysylania)) {
                 attachMenu = false
-                if (text.isBlank()) vm.toast = "Najpierw wpisz treść wiadomości" else scheduleMenu = true
+                if (text.isBlank()) vm.toast = tr(R.string.najpierw_wpisz_tresc_wiadomosci) else scheduleMenu = true
             }
         }
     }
 
     if (templates) {
-        ActionSheet(title = "Szablony", onDismiss = { templates = false }) {
+        ActionSheet(title = tr(R.string.szablony), onDismiss = { templates = false }) {
             if (vm.settings.templates.isEmpty()) {
-                Text("Brak szablonów. Dodasz je w Ustawieniach.", color = Palette.TextDim, fontSize = 14.sp, modifier = Modifier.padding(20.dp))
+                Text(tr(R.string.brak_szablonow_dodasz_je_w), color = Palette.TextDim, fontSize = 14.sp, modifier = Modifier.padding(20.dp))
             }
             vm.settings.templates.forEach { t ->
                 ActionRow(Icons.AutoMirrored.Rounded.ShortText, t.text) {
@@ -272,9 +295,11 @@ fun Composer(vm: AppViewModel, s: Screen.Thread) {
     }
 
     if (scheduleMenu) {
-        ScheduleSheet(onDismiss = { scheduleMenu = false }) { time ->
+        ScheduleSheet(vm, onDismiss = { scheduleMenu = false }) { time, confirm ->
             scheduleMenu = false
-            vm.schedule(s, text, time, subId)
+            val scheduledText = text
+            clearField()
+            vm.schedule(s, scheduledText, time, subId, confirm)
         }
     }
 }
@@ -293,7 +318,7 @@ private fun Counter(vm: AppViewModel, text: String, attachments: List<Attachment
     val left = calc[2]
     val asMms = vm.settings.longAsMms && parts > vm.settings.longAsMmsSegments
     Text(
-        if (asMms) "MMS (długa wiadomość)" else "$left · ${plural(parts, "SMS", "SMS-y", "SMS-ów")}",
+        if (asMms) tr(R.string.mms_dluga_wiadomosc) else "$left · ${plural(parts, tr(R.string.sms_one), tr(R.string.sms_few), tr(R.string.sms_many))}",
         color = if (parts > 3 && !asMms) Color(0xFFFFB74D) else Palette.TextFaint,
         fontSize = 11.sp,
         modifier = Modifier.padding(top = 3.dp),
@@ -326,15 +351,16 @@ private fun AttachmentChip(a: Attachment, onRemove: () -> Unit) {
             Modifier.align(Alignment.TopEnd).padding(4.dp).size(22.dp).clip(CircleShape).background(Color.Black.copy(alpha = 0.7f)).clickable(onClick = onRemove),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(Icons.Rounded.Close, "Usuń załącznik", tint = Color.White, modifier = Modifier.size(14.dp))
+            Icon(Icons.Rounded.Close, tr(R.string.usun_zalacznik), tint = Color.White, modifier = Modifier.size(14.dp))
         }
     }
 }
 
 /** Szybkie terminy wysyłki i własna data z systemowego kalendarza. */
 @Composable
-fun ScheduleSheet(onDismiss: () -> Unit, onPick: (Long) -> Unit) {
+fun ScheduleSheet(vm: AppViewModel, onDismiss: () -> Unit, onPick: (Long, Boolean) -> Unit) {
     val context = LocalContext.current
+    val settings = vm.settings
     fun at(daysAhead: Int, hour: Int, minute: Int = 0): Long = Calendar.getInstance().apply {
         add(Calendar.DAY_OF_YEAR, daysAhead)
         set(Calendar.HOUR_OF_DAY, hour)
@@ -344,21 +370,28 @@ fun ScheduleSheet(onDismiss: () -> Unit, onPick: (Long) -> Unit) {
     }.timeInMillis
     val now = System.currentTimeMillis()
     val options = buildList {
-        add("Za godzinę" to now + 3_600_000L)
-        if (at(0, 20) > now + 600_000) add("Dziś wieczorem, 20:00" to at(0, 20))
-        add("Jutro rano, 8:00" to at(1, 8))
-        add("Jutro w południe, 12:00" to at(1, 12))
+        add(tr(R.string.za_godzine) to now + 3_600_000L)
+        if (at(0, 20) > now + 600_000) add(tr(R.string.dzis_wieczorem_20_00) to at(0, 20))
+        add(tr(R.string.jutro_rano_8_00) to at(1, 8))
+        add(tr(R.string.jutro_w_poludnie_12_00) to at(1, 12))
     }
-    ActionSheet(title = "Zaplanuj wysłanie", onDismiss = onDismiss) {
+    ActionSheet(title = tr(R.string.zaplanuj_wyslanie), onDismiss = onDismiss) {
+        // Zapamiętany wybór: wysłać samo albo najpierw zapytać w powiadomieniu.
+        SwitchRow(
+            Icons.Rounded.NotificationsActive,
+            tr(R.string.zapytaj_przed_wyslaniem),
+            if (settings.scheduleConfirm) tr(R.string.o_czasie_przyjdzie_powiadomienie_wyslij) else tr(R.string.wiadomosc_wyjdzie_sama_o_wybranej),
+            settings.scheduleConfirm,
+        ) { settings.scheduleConfirm = it }
         options.forEach { (label, time) ->
-            ActionRow(Icons.Rounded.Schedule, label, formatFull(time).substringBeforeLast(':')) { onPick(time) }
+            ActionRow(Icons.Rounded.Schedule, label, formatFull(time).substringBeforeLast(':')) { onPick(time, settings.scheduleConfirm) }
         }
-        ActionRow(Icons.Rounded.Schedule, "Wybierz datę i godzinę…") {
+        ActionRow(Icons.Rounded.Schedule, tr(R.string.wybierz_date_i_godzine)) {
             val c = Calendar.getInstance()
             DatePickerDialog(context, { _, y, mo, d ->
                 TimePickerDialog(context, { _, h, mi ->
                     val t = Calendar.getInstance().apply { set(y, mo, d, h, mi, 0); set(Calendar.MILLISECOND, 0) }.timeInMillis
-                    if (t <= System.currentTimeMillis()) onDismiss() else onPick(t)
+                    if (t <= System.currentTimeMillis()) onDismiss() else onPick(t, settings.scheduleConfirm)
                 }, c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE), true).show()
             }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)).apply {
                 datePicker.minDate = System.currentTimeMillis() - 1000

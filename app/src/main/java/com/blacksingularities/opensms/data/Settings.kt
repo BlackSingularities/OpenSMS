@@ -1,5 +1,8 @@
 package com.blacksingularities.opensms.data
 
+import com.blacksingularities.opensms.R
+import com.blacksingularities.opensms.tr
+
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.compose.runtime.MutableState
@@ -10,11 +13,50 @@ import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
 /** Rozmiar tekstu wiadomości. */
-enum class TextSize(val label: String, val scale: Float) {
-    SMALL("Mały", 0.88f),
-    NORMAL("Zwykły", 1f),
-    LARGE("Duży", 1.15f),
-    HUGE("Bardzo duży", 1.32f),
+enum class TextSize(private val labelRes: Int, val scale: Float) {
+    SMALL(R.string.maly, 0.88f),
+    NORMAL(R.string.zwykly, 1f),
+    LARGE(R.string.duzy, 1.15f),
+    HUGE(R.string.bardzo_duzy, 1.32f);
+
+    val label: String get() = tr(labelRes)
+}
+
+/** Maksymalna szerokość dymka jako ułamek szerokości ekranu. */
+enum class BubbleWidth(private val labelRes: Int, val fraction: Float) {
+    NARROW(R.string.waskie, 0.7f),
+    NORMAL(R.string.zwykle, 0.8f),
+    WIDE(R.string.szerokie, 0.92f);
+
+    val label: String get() = tr(labelRes)
+}
+
+/** Kolor własnych (wysłanych) dymków. */
+enum class BubbleTint(private val labelRes: Int) {
+    WHITE(R.string.bialy),
+    SILVER(R.string.srebrny),
+    GRAPHITE(R.string.grafit),
+    OUTLINE(R.string.kontur);
+
+    val label: String get() = tr(labelRes)
+}
+
+/** Odstępy między wiadomościami (dp): między seriami i wewnątrz serii. */
+enum class BubbleSpacing(private val labelRes: Int, val gap: Float, val joined: Float) {
+    COMPACT(R.string.ciasno, 4f, 1f),
+    NORMAL(R.string.zwykle_2, 7f, 2f),
+    AIRY(R.string.luzno, 12f, 3f);
+
+    val label: String get() = tr(labelRes)
+}
+
+/** Kiedy pokazywać godzinę pod wiadomością. */
+enum class TimeMode(private val labelRes: Int) {
+    GROUP(R.string.pod_seria),
+    EVERY(R.string.pod_kazda),
+    TAP(R.string.po_dotknieciu);
+
+    val label: String get() = tr(labelRes)
 }
 
 /** Limit rozmiaru MMS – zdjęcia są zmniejszane, żeby zmieścić się w limicie operatora. */
@@ -25,12 +67,14 @@ enum class MmsLimit(val label: String, val bytes: Int) {
 }
 
 /** Akcja przesunięcia rozmowy w bok na liście. */
-enum class SwipeAction(val label: String) {
-    NONE("Brak"),
-    ARCHIVE("Archiwizuj"),
-    READ("Przeczytane"),
-    PIN("Przypnij"),
-    DELETE("Usuń"),
+enum class SwipeAction(private val labelRes: Int) {
+    NONE(R.string.brak),
+    ARCHIVE(R.string.archiwizuj),
+    READ(R.string.przeczytane),
+    PIN(R.string.przypnij),
+    DELETE(R.string.usun);
+
+    val label: String get() = tr(labelRes)
 }
 
 data class Template(val id: Long, val text: String)
@@ -41,6 +85,8 @@ data class ScheduledMessage(
     val text: String,
     val time: Long,
     val subId: Int,
+    /** true: o czasie przychodzi powiadomienie z pytaniem, a wysyłka dopiero po „Wyślij”. */
+    val confirm: Boolean = false,
 )
 
 /** Wiadomość zatrzymana przez filtr (do przejrzenia w ustawieniach). */
@@ -61,6 +107,27 @@ class Settings private constructor(context: Context) {
     var swipeRight by enumPref("swipeRight", SwipeAction.READ)
     var haptics by boolPref("haptics", true)
     var relativeTimes by boolPref("relativeTimes", true)
+
+    // Wygląd rozmowy
+    /** Powiększenie dymków zmieniane gestem dwóch palców (0.6–2.0). */
+    var bubbleZoom by floatPref("bubbleZoom", 1f)
+    var listZoom by floatPref("listZoom", 1f)
+    /** Ostatni wybór „Zapytaj przed wysłaniem” w arkuszu planowania. */
+    var scheduleConfirm by boolPref("scheduleConfirm", false)
+    var pinchZoom by boolPref("pinchZoom", true)
+    /** Promień rogów dymka w dp (0 – kanciaste, 28 – mocno okrągłe). */
+    var bubbleRadius by floatPref("bubbleRadius", 22f)
+    var bubbleWidth by enumPref("bubbleWidth", BubbleWidth.NORMAL)
+    var bubbleTint by enumPref("bubbleTint", BubbleTint.WHITE)
+    var bubbleSpacing by enumPref("bubbleSpacing", BubbleSpacing.NORMAL)
+    var timeMode by enumPref("timeMode", TimeMode.GROUP)
+    var bigEmoji by boolPref("bigEmoji", true)
+    /** Emotikony tekstowe (`:)`, `<3`) pokazywane jako emoji. */
+    var emoticons by boolPref("emoticons", true)
+    var dayHeaders by boolPref("dayHeaders", true)
+    var senderAvatars by boolPref("senderAvatars", false)
+    /** Reakcje SMS („Reacted 👍 to …”) jako emoji pod wiadomością zamiast osobnych dymków. */
+    var reactions by boolPref("reactions", true)
 
     // Wysyłanie
     var deliveryReports by boolPref("deliveryReports", false)
@@ -87,6 +154,12 @@ class Settings private constructor(context: Context) {
     var keepBlockedLog by boolPref("keepBlockedLog", true)
     var blockedNumbers by stringSetPref("blockedNumbers")
     var blockedKeywords by stringSetPref("blockedKeywords")
+    /** Automatyczne zatrzymywanie podejrzanych wiadomości od nieznanych nadawców. */
+    var spamFilter by boolPref("spamFilter", true)
+    /** Odblokowanie aplikacji odciskiem palca, twarzą albo PIN-em ekranu blokady. */
+    var appLock by boolPref("appLock", false)
+    /** Treść wiadomości widoczna na ekranie blokady (domyślnie ukryta). */
+    var lockScreenContent by boolPref("lockScreenContent", false)
 
     // Rozmowy
     var pinned by stringSetPref("pinned")
@@ -230,7 +303,7 @@ class Settings private constructor(context: Context) {
         val arr = JSONArray()
         list.forEach { m ->
             arr.put(
-                JSONObject().put("id", m.id).put("text", m.text).put("time", m.time).put("sub", m.subId)
+                JSONObject().put("id", m.id).put("text", m.text).put("time", m.time).put("sub", m.subId).put("confirm", m.confirm)
                     .put("to", JSONArray(m.addresses)),
             )
         }
@@ -254,6 +327,7 @@ class Settings private constructor(context: Context) {
                 o.getString("text"),
                 o.getLong("time"),
                 o.optInt("sub", -1),
+                o.optBoolean("confirm", false),
             )
         }.sortedBy { it.time }
     }.getOrDefault(emptyList())
@@ -262,6 +336,7 @@ class Settings private constructor(context: Context) {
 
     private fun boolPref(key: String, def: Boolean) = Pref(key, def, { sp.getBoolean(key, def) }, { putBoolean(key, it) })
     private fun intPref(key: String, def: Int) = Pref(key, def, { sp.getInt(key, def) }, { putInt(key, it) })
+    private fun floatPref(key: String, def: Float) = Pref(key, def, { sp.getFloat(key, def) }, { putFloat(key, it) })
     private fun longPref(key: String, def: Long) = Pref(key, def, { sp.getLong(key, def) }, { putLong(key, it) })
     private fun stringPref(key: String, def: String) = Pref(key, def, { sp.getString(key, def) ?: def }, { putString(key, it) })
     private fun stringSetPref(key: String) = Pref<Set<String>>(key, emptySet(), { sp.getStringSet(key, emptySet())?.toSet() ?: emptySet() }, { putStringSet(key, it) })
@@ -296,10 +371,10 @@ class Settings private constructor(context: Context) {
             instance ?: synchronized(this) { instance ?: Settings(context.applicationContext).also { instance = it } }
 
         val DEFAULT_TEMPLATES = listOf(
-            "Oddzwonię za chwilę.",
-            "Jestem w drodze.",
-            "Nie mogę teraz rozmawiać, napiszę później.",
-            "Dzięki!",
+            tr(R.string.oddzwonie_za_chwile),
+            tr(R.string.jestem_w_drodze),
+            tr(R.string.nie_moge_teraz_rozmawiac_napisze),
+            tr(R.string.dzieki),
             "OK 👍",
         )
     }

@@ -1,5 +1,102 @@
 # Zmiany
 
+## 1.4.7
+
+- **Kod, znaczek i podświetlenie zawsze w zgodzie**: detektor zwraca teraz miejsce kodu w treści, więc wyróżnienie w dymku nie rozjeżdża się z tym, co kopiuje znaczek. Działa też dla kodów pisanych ze spacją lub myślnikiem w dowolnym układzie, nie tylko „123 456”.
+- Menu po przytrzymaniu wiadomości pokazuje „Kopiuj kod” tylko przy wiadomościach przychodzących – tak samo jak znaczek w dymku.
+- Akcja „Kopiuj kod” w powiadomieniu również dotyczy wyłącznie wiadomości przychodzącej.
+- Kod bywa wykrywany w dłuższych wiadomościach: limit podniesiony z 400 do 1200 znaków, więc sklejony SMS wieloczęściowy i tekst MMS-a nie przepadają.
+- Zamiana emotikon na emoji nie przesuwa już podświetlenia kodu.
+
+## 1.4.6
+
+- **Znaczek kopiowania kodu pojawia się tylko przy prawdziwym kodzie**: wiadomości reklamowe banków, w których słowa „BLIK”, „transakcja” czy „potwierdź” występują na co dzień, nie zapalają już kółka z kodem.
+- Sam ciąg cyfr nie wystarczy – potrzebna jest zapowiedź kodu w pobliżu: albo jednoznaczna („kod weryfikacyjny”, „OTP”, „3D Secure”), albo słabsze słowo wraz z wyraźnym przypisaniem („kod: 123456”, „kod to 123456”).
+- Numery telefonu (infolinia, numer z przedrostkiem +48) i adresy stron nie są już brane za kod.
+- Kwoty, procenty, RRSO, raty, numery rachunków i umów oraz daty zapisane jednym ciągiem („12122026”) są pomijane.
+- Kod musi stać blisko swojej zapowiedzi, a odległość liczona jest od najbliższego jej wystąpienia, nie od pierwszego słowa w wiadomości.
+
+## 1.4.5
+
+- Ikona aplikacji bez tła: na ekranie głównym widać sam kolorowy emblemat, spójnie z trybem „Bez tła” w OpenDesktop.
+
+## 1.4.4
+
+- **Mniejszy znaczek kopiowania kodu**: jest o połowę mniejszy i siedzi w prawym górnym rogu dymka, więc nie zasłania treści wiadomości.
+- W trybie zaznaczania znaczek zostaje w tym samym miejscu i ma ten sam rozmiar.
+
+## 1.4.3
+
+- **Powiadomienia z awatarem nadawcy**: zamiast ikony aplikacji widać zdjęcie kontaktu albo – gdy go nie ma – inicjały na kolorowym tle, dokładnie jak w aplikacji (z uwzględnieniem przełącznika „Kolorowe awatary”). Rozmowy grupowe mają awatar z połówek dwóch uczestników, a każdy nadawca w grupie własne kółko.
+- Ten sam awatar ma skrót rozmowy w sekcji „Rozmowy” Androida i w arkuszu udostępniania.
+- Powiadomienia o nieudanej wysyłce, MMS do pobrania i zaplanowanych wiadomościach też pokazują awatar odbiorcy.
+- Nadawca w powiadomieniu jest powiązany z kontaktem, więc tryb „Nie przeszkadzać” przepuszcza wiadomości od osób oznaczonych jako ważne.
+- Porządniejsza treść: godzina ostatniej wiadomości, opis załącznika („Film”, „Nagranie”) w języku telefonu zamiast zawsze po polsku, podgląd w zwiniętym powiadomieniu także dla samych załączników.
+- Własne ikony akcji „Odpowiedz”, „Przeczytane” i „Kopiuj kod” (widoczne m.in. na zegarkach i w samochodzie).
+
+## 1.4.2
+
+- Zgłaszanie błędów i sugestii: nowa pozycja „Zgłoś błąd lub sugestię” – opis trafia prosto do autora przez redzikowski.com, e-mail jest opcjonalny.
+- Po nieoczekiwanym zamknięciu aplikacja przy następnym uruchomieniu proponuje wysłanie raportu o błędzie – tylko za zgodą użytkownika.
+- „Dodaj do kontaktów” w menu rozmowy znów działa także z aplikacjami kontaktów, które nie obsługują „dodaj lub edytuj” (np. OpenDial); gdy żadna aplikacja nie odpowie, pojawia się komunikat.
+- Nazwy nadawców odświeżają się od razu po dodaniu albo zmianie kontaktu (także na karcie SIM) – bez restartu aplikacji.
+- Poprawka budowania: wersje 1.4.0 i 1.4.1 nie powstały przez zasób o nazwie zastrzeżonej w Javie.
+
+## 1.4.1
+
+- **Wybór języka**: Ustawienia → System → Język – „Automatycznie” (jak telefon) albo dowolny dostępny język; ten sam wybór jest w systemowych ustawieniach języka aplikacji (Android 13+).
+- **Łatwe dodawanie języków**: nowy plik `values-xx/strings.xml` wystarczy – lista języków w aplikacji i w systemie tworzy się sama. Instrukcja w `TRANSLATING.md`, a test pilnuje zgodności tłumaczeń.
+
+## 1.4.0
+
+- **Język angielski**: wszystkie napisy przeniesione do zasobów; aplikacja mówi po polsku albo po angielsku zgodnie z językiem telefonu (można go też wybrać osobno dla OpenSMS w ustawieniach systemu). Daty i dni tygodnia także w języku telefonu.
+- **Filtr spamu**: podejrzane wiadomości od nieznanych nadawców (fałszywe dopłaty do paczek, „blokada konta”, skrócone linki) trafiają do zatrzymanych zamiast do skrzynki. Działa wyłącznie w telefonie; przełącznik w Ustawieniach → Prywatność i filtry.
+- **Reakcje**: „Reacted 👍 to …”, „Liked …”, „Polubiono …” z Google Messages i iPhone'ów pokazują się jako emoji pod wiadomością, a nie jako osobne dymki. Przytrzymaj wiadomość, żeby samemu zareagować.
+- **Zaznaczanie wielu wiadomości**: „Zaznacz” w menu wiadomości, potem kopiowanie, przekazanie dalej albo usunięcie kilku naraz.
+- **Blokada aplikacji** odciskiem palca, twarzą albo PIN-em ekranu blokady; podgląd w ostatnich aplikacjach jest wtedy zasłonięty.
+- **Treść na ekranie blokady** – nowy przełącznik; domyślnie ekran blokady pokazuje tylko „Nowa wiadomość”.
+- **Skróty rozmów**: powiadomienia trafiają do sekcji „Rozmowy” Androida (można oznaczyć rozmowę jako priorytetową), a rozmowy pojawiają się w arkuszu udostępniania.
+- **Czytnik ekranu**: dymki podają nadawcę i godzinę, akcje przesunięcia na liście są dostępne w menu „Działania” TalkBacka, opisane przyciski i stany.
+- Nowe testy: reakcje, filtr spamu, kompletność tłumaczeń i odmiana liczebników.
+
+## 1.3.2
+
+- Bez żadnych wzmianek o GitHubie w aplikacji: nowy adres serwera aktualizacji, komunikaty błędów bez nazw zewnętrznych serwerów.
+
+## 1.3.1
+
+- Komunikat o nowej wersji bez listy zmian, linków i informacji, skąd pobierana jest aktualizacja.
+
+## 1.3.0
+
+- **Emotikony jako emoji**: `:)`, `;)`, `:D`, `XD`, `<3` i kilkadziesiąt innych wzorów pokazuje się w rozmowie i na liście jako emoji – także w środku zdania i zaraz po wyrazie („ok;)”). Sama emotikona w wiadomości rośnie jak duże emoji. Adresy `http://` i zwykłe wyrazy zostają nietknięte, a w bazie zapisana jest oryginalna treść. Przełącznik w Ustawieniach → Wygląd rozmowy.
+- **Zaokrąglenie dymków suwakiem** (0–28 dp) zamiast trzech gotowych kształtów, z podglądem na żywo i przyciskiem powrotu do domyślnych 22 dp.
+- Nagłówek daty nad wiadomościami bez tła i obwódki – sam napis.
+- Zniknął pusty pas między paskiem stanu a treścią: wszystkie widoki zaczynają się od razu pod paskiem.
+
+## 1.2.1
+
+- Baner aktualizacji w aplikacji pokazuje tylko numer nowej wersji, bez listy zmian z GitHuba.
+
+## 1.2.0
+
+- **Przełączanie kart gestem**: przesunięcie palcem w bok po pustym miejscu listy (pod rozmowami albo na pustej liście) zmienia kartę – Wszystkie, Nieprzeczytane, Archiwum itd.
+- **Nowa wyszukiwarka**: wyrasta z lupy i płynnie rozciąga się w lewo, zakrywając karty; lista rozmów znika dopiero po wpisaniu tekstu.
+- **Powiększanie dwoma palcami także na liście rozmów**, zapamiętywane osobno od rozmowy.
+- **Kody jednorazowe**: zamiast przycisku pod dymkiem – mały, dyskretny znaczek kopiowania w prawym górnym rogu kodu; podgląd w ustawieniach wygląda tak samo.
+- Komunikat „Nie można odpowiedzieć” na całą szerokość, z tłem zanikającym ku górze i wyśrodkowanym nagłówkiem.
+- Liczniki na zakładkach nie są już przycinane przez krawędź przycisku.
+- **Planowanie z potwierdzeniem**: w arkuszu „Zaplanuj wysłanie” przełącznik „Zapytaj przed wysłaniem” – o wybranej godzinie przychodzi powiadomienie z przyciskami „Wyślij” i „Nie wysyłaj”; bez niego wiadomość wychodzi sama.
+- Uporządkowany wygląd ustawień: równe wysokości i odstępy wierszy, wyrównane nagłówki sekcji, czytelniejsze opisy.
+
+## 1.1.0
+
+- **Powiększanie dwoma palcami** w rozmowie: dymki, tekst, odstępy i zdjęcia płynnie rosną i maleją; plakietka pokazuje procent, dotknięcie wraca do 100%.
+- **Wygląd rozmowy** w ustawieniach z podglądem na żywo: kolor własnych wiadomości (biały, srebrny, grafit, kontur), kształt i szerokość dymków, odstępy, kiedy pokazywać godzinę, duże emoji, nagłówki dni i awatary w rozmowach grupowych.
+- **Kody jednorazowe**: kod w treści jest wyróżniony i kopiuje się po dotknięciu; pod wiadomością dyskretny przycisk z kodem, który po skopiowaniu na chwilę pokazuje „Skopiowano”.
+- Po wysłaniu pole pisania od razu się czyści i tekst nie zostaje już jako szkic; przy błędzie wysyłki treść wraca do pola.
+- Przełączniki w ustawieniach nie wychodzą poza ekran, podpowiedź w polu pisania ma ten sam rozmiar co wpisywany tekst, dymki dopasowują szerokość do ekranu.
+
 ## 1.0.3
 
 - Liczniki na zakładkach w kolorze akcentu, przypięte do rogu ikony – nie poszerzają już przycisków.

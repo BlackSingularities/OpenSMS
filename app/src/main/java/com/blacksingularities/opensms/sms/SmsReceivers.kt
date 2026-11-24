@@ -1,5 +1,8 @@
 package com.blacksingularities.opensms.sms
 
+import com.blacksingularities.opensms.R
+import com.blacksingularities.opensms.tr
+
 import android.app.Activity
 import android.app.Service
 import android.content.BroadcastReceiver
@@ -15,6 +18,7 @@ import com.blacksingularities.opensms.data.Contacts
 import com.blacksingularities.opensms.data.MessageStore
 import com.blacksingularities.opensms.data.Settings
 import com.blacksingularities.opensms.notify.Notifier
+import com.blacksingularities.opensms.util.SpamFilter
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -38,13 +42,15 @@ internal fun BroadcastReceiver.async(block: suspend () -> Unit) {
 /** Filtr: zwraca powód blokady albo null. */
 internal fun blockReason(context: Context, address: String, body: String): String? {
     val s = Settings.get(context)
-    if (s.isBlockedNumber(address)) return "Zablokowany numer"
-    s.blockedKeywordIn(body)?.let { return "Słowo kluczowe: $it" }
-    if (s.blockUnknown && !Contacts.isKnown(context, address)) return "Nieznany nadawca"
+    if (s.isBlockedNumber(address)) return tr(R.string.zablokowany_numer)
+    s.blockedKeywordIn(body)?.let { return tr(R.string.slowo_kluczowe_1, it) }
+    val known = Contacts.isKnown(context, address)
+    if (s.blockUnknown && !known) return tr(R.string.nieznany_nadawca)
+    if (s.spamFilter && !known && SpamFilter.isSpam(body)) return tr(R.string.podejrzenie_spamu)
     val systemBlocked = runCatching {
         android.provider.BlockedNumberContract.isBlocked(context, address)
     }.getOrDefault(false)
-    if (systemBlocked) return "Zablokowany w systemie"
+    if (systemBlocked) return tr(R.string.zablokowany_w_systemie)
     return null
 }
 
@@ -123,13 +129,13 @@ class SmsStatusReceiver : BroadcastReceiver() {
         const val EXTRA_PARTS = "parts"
 
         fun errorText(code: Int): String = when (code) {
-            SmsManager.RESULT_ERROR_NO_SERVICE -> "Brak zasięgu"
-            SmsManager.RESULT_ERROR_RADIO_OFF -> "Tryb samolotowy lub wyłączone radio"
-            SmsManager.RESULT_ERROR_NULL_PDU -> "Błąd wiadomości"
-            SmsManager.RESULT_ERROR_LIMIT_EXCEEDED -> "Przekroczono limit wysyłania"
-            SmsManager.RESULT_ERROR_SHORT_CODE_NOT_ALLOWED, SmsManager.RESULT_ERROR_SHORT_CODE_NEVER_ALLOWED -> "Numer skrócony zablokowany"
-            SmsManager.RESULT_ERROR_FDN_CHECK_FAILURE -> "Numer spoza listy wybierania ustalonego"
-            else -> "Błąd wysyłania (kod $code)"
+            SmsManager.RESULT_ERROR_NO_SERVICE -> tr(R.string.brak_zasiegu)
+            SmsManager.RESULT_ERROR_RADIO_OFF -> tr(R.string.tryb_samolotowy_lub_wylaczone_radio)
+            SmsManager.RESULT_ERROR_NULL_PDU -> tr(R.string.blad_wiadomosci)
+            SmsManager.RESULT_ERROR_LIMIT_EXCEEDED -> tr(R.string.przekroczono_limit_wysylania)
+            SmsManager.RESULT_ERROR_SHORT_CODE_NOT_ALLOWED, SmsManager.RESULT_ERROR_SHORT_CODE_NEVER_ALLOWED -> tr(R.string.numer_skrocony_zablokowany)
+            SmsManager.RESULT_ERROR_FDN_CHECK_FAILURE -> tr(R.string.numer_spoza_listy_wybierania_ustalonego)
+            else -> tr(R.string.blad_wysylania_kod_1, code)
         }
     }
 }

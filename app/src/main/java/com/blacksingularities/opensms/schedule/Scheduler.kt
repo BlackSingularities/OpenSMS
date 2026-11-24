@@ -17,6 +17,8 @@ import com.blacksingularities.opensms.sms.async
 /** Wiadomości zaplanowane: dokładny alarm (gdy system pozwala) i wysyłka o czasie. */
 object Scheduler {
     private const val EXTRA_ID = "id"
+    const val ACTION_SEND = "com.blacksingularities.opensms.SCHEDULED_SEND"
+    const val ACTION_SKIP = "com.blacksingularities.opensms.SCHEDULED_SKIP"
 
     fun add(context: Context, message: ScheduledMessage) {
         val s = Settings.get(context)
@@ -28,6 +30,7 @@ object Scheduler {
         val s = Settings.get(context)
         s.saveScheduled(s.scheduled.filter { it.id != id })
         context.getSystemService(AlarmManager::class.java)?.cancel(pending(context, id))
+        Notifier.cancelScheduledConfirm(context, id)
     }
 
     /** Po restarcie telefonu i zmianie uprawnień alarmy trzeba ustawić od nowa. */
@@ -59,7 +62,19 @@ object Scheduler {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
 
+    /** Alarm o czasie: albo wysyła od razu, albo (z potwierdzeniem) pyta w powiadomieniu. */
     internal fun fire(context: Context, id: Long) {
+        val m = Settings.get(context).reloadScheduled().firstOrNull { it.id == id } ?: return
+        if (m.confirm) {
+            Notifier.showScheduledConfirm(context, m, Contacts.title(context, m.addresses))
+            return
+        }
+        sendNow(context, id)
+    }
+
+    /** Wysyłka teraz – z alarmu albo po „Wyślij” w powiadomieniu. */
+    internal fun sendNow(context: Context, id: Long) {
+        Notifier.cancelScheduledConfirm(context, id)
         val s = Settings.get(context)
         val m = s.reloadScheduled().firstOrNull { it.id == id } ?: return
         s.saveScheduled(s.scheduled.filter { it.id != id })
@@ -72,7 +87,14 @@ class ScheduledSendReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val id = intent.getLongExtra("id", -1)
         if (id < 0) return
-        async { Scheduler.fire(context, id) }
+        when (intent.action) {
+            Scheduler.ACTION_SEND -> async { Scheduler.sendNow(context, id) }
+            Scheduler.ACTION_SKIP -> async {
+                Notifier.cancelScheduledConfirm(context, id)
+                Scheduler.cancel(context, id)
+            }
+            else -> async { Scheduler.fire(context, id) }
+        }
     }
 }
 

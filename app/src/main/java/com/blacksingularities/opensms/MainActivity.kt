@@ -1,6 +1,14 @@
 package com.blacksingularities.opensms
 
+import com.blacksingularities.opensms.feedback.Feedback
+import com.blacksingularities.opensms.feedback.CrashReportPrompt
 import android.Manifest
+import android.app.KeyguardManager
+import android.hardware.biometrics.BiometricPrompt
+import android.os.CancellationSignal
+import android.view.WindowManager
+import com.blacksingularities.opensms.data.MessageStore
+import com.blacksingularities.opensms.notify.ConversationShortcuts
 import android.app.role.RoleManager
 import android.content.Intent
 import android.net.Uri
@@ -38,13 +46,16 @@ class MainActivity : ComponentActivity() {
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
+        Feedback.install(this, "opensms")
         UpdateManager.clearUpdatedNotification(this)
         setContent {
             OpenSmsTheme {
+                CrashReportPrompt()
                 AppRoot(
                     vm = vm,
                     onRequestDefault = ::requestDefaultRole,
                     onRequestPermissions = { askPermissions() },
+                    onUnlock = ::unlock,
                 )
             }
         }
@@ -57,9 +68,55 @@ class MainActivity : ComponentActivity() {
         handleIntent(intent)
     }
 
+    override fun onStart() {
+        super.onStart()
+        vm.onReturn()
+    }
+
+    override fun onStop() {
+        vm.onBackground()
+        super.onStop()
+    }
+
     override fun onResume() {
         super.onResume()
+        // Przy blokadzie aplikacji podgląd w „Ostatnich” i zrzuty ekranu są zasłonięte.
+        if (vm.settings.appLock) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+        else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
         vm.onForeground(true)
+    }
+
+    /** Odcisk palca, twarz albo PIN/wzór ekranu blokady – to, co użytkownik ma ustawione w systemie. */
+    private fun unlock() {
+        val km = getSystemService(KeyguardManager::class.java)
+        if (km == null || !km.isDeviceSecure) {
+            // Bez blokady ekranu nie ma czym się uwierzytelnić – nie zamykamy użytkownika na zewnątrz.
+            vm.locked = false
+            return
+        }
+        val builder = BiometricPrompt.Builder(this)
+            .setTitle(getString(R.string.odblokuj_opensms))
+            .setSubtitle(getString(R.string.odblokuj_opis))
+        if (Build.VERSION.SDK_INT >= 30) {
+            builder.setAllowedAuthenticators(
+                android.hardware.biometrics.BiometricManager.Authenticators.BIOMETRIC_WEAK or
+                    android.hardware.biometrics.BiometricManager.Authenticators.DEVICE_CREDENTIAL,
+            )
+        } else {
+            @Suppress("DEPRECATION")
+            builder.setDeviceCredentialAllowed(true)
+        }
+        runCatching {
+            builder.build().authenticate(
+                CancellationSignal(),
+                mainExecutor,
+                object : BiometricPrompt.AuthenticationCallback() {
+                    override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult?) {
+                        vm.locked = false
+                    }
+                },
+            )
+        }.onFailure { vm.locked = false }
     }
 
     override fun onPause() {
@@ -119,7 +176,11 @@ class MainActivity : ComponentActivity() {
                 val stream = streamExtra(intent)
                 val attachments = listOfNotNull(stream).map { MmsSender.describe(this, it) }
                 vm.home()
-                vm.push(Screen.Compose(text = text, attachments = attachments))
+                // Udostępnianie prosto do rozmowy (skrót w arkuszu udostępniania).
+                val shared = ConversationShortcuts.threadOf(intent.getStringExtra(Intent.EXTRA_SHORTCUT_ID))
+                val addresses = shared?.let { MessageStore(this).threadAddresses(it) }.orEmpty()
+                if (addresses.isNotEmpty()) vm.openAddresses(addresses, text, attachments)
+                else vm.push(Screen.Compose(text = text, attachments = attachments))
             }
             Intent.ACTION_SEND_MULTIPLE -> {
                 val uris = streamListExtra(intent)

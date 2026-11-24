@@ -1,5 +1,8 @@
 package com.blacksingularities.opensms.data
 
+import com.blacksingularities.opensms.R
+import com.blacksingularities.opensms.tr
+
 import android.content.ContentValues
 import android.content.Context
 import android.database.Cursor
@@ -35,7 +38,7 @@ class MessageStore(context: Context) {
                     val id = c.getLong(0)
                     val recipients = (c.getString(3) ?: "").split(' ').mapNotNull { it.toLongOrNull()?.let(addresses::get) }
                     val hasAttachment = c.getInt(6) == 1
-                    val snippet = decodeMmsText(c.getString(4), c.getInt(5)).ifBlank { if (hasAttachment) "Załącznik MMS" else "" }
+                    val snippet = decodeMmsText(c.getString(4), c.getInt(5)).ifBlank { if (hasAttachment) tr(R.string.zalacznik_mms) else "" }
                     out += Conversation(
                         threadId = id,
                         addresses = recipients,

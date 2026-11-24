@@ -1,5 +1,9 @@
 package com.blacksingularities.opensms.ui.components
 
+import com.blacksingularities.opensms.R
+import com.blacksingularities.opensms.tr
+
+import androidx.compose.foundation.layout.heightIn
 import android.graphics.Bitmap
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
@@ -174,7 +178,7 @@ fun Group(
             Modifier
                 .fillMaxWidth()
                 .then(if (collapsible) Modifier.clickable { expanded = !expanded } else Modifier)
-                .padding(start = 4.dp, end = 4.dp, bottom = 3.dp, top = 4.dp),
+                .padding(start = 14.dp, end = 14.dp, bottom = 6.dp, top = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
@@ -188,7 +192,7 @@ fun Group(
             if (collapsible) {
                 Icon(
                     Icons.Rounded.ExpandMore,
-                    if (expanded) "Zwiń sekcję $title" else "Rozwiń sekcję $title",
+                    if (expanded) tr(R.string.zwin_sekcje_1, title) else tr(R.string.rozwin_sekcje_1, title),
                     tint = Palette.Accent,
                     modifier = Modifier.size(18.dp).rotate(if (expanded) 0f else -90f),
                 )
@@ -198,9 +202,9 @@ fun Group(
             Column(
                 Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
+                    .clip(RoundedCornerShape(20.dp))
                     .background(Color.White.copy(alpha = 0.06f))
-                    .padding(vertical = 2.dp),
+                    .padding(vertical = 6.dp),
                 content = content,
             )
         }
@@ -225,14 +229,15 @@ fun SwitchRow(icon: ImageVector, title: String, subtitle: String?, value: Boolea
     Row(
         Modifier
             .fillMaxWidth()
+            .heightIn(min = 56.dp)
             .clickable(enabled = enabled) { onChange(!value) }
-            .padding(horizontal = 10.dp, vertical = 4.dp),
+            .padding(start = 14.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         RowIcon(icon)
         Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-            Text(title, fontSize = 14.sp, color = if (enabled) Color.White else Palette.TextFaint)
-            if (subtitle != null) Text(subtitle, fontSize = 11.sp, color = Palette.TextDim, lineHeight = 14.sp)
+            Text(title, fontSize = 15.sp, color = if (enabled) Color.White else Palette.TextFaint)
+            if (subtitle != null) Text(subtitle, fontSize = 12.sp, color = Palette.TextDim, lineHeight = 16.sp, modifier = Modifier.padding(top = 1.dp))
         }
         Switch(
             checked = value,
@@ -256,11 +261,11 @@ fun <T> CompactChoice(
     hint: String? = null,
     onSelect: (T) -> Unit,
 ) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 6.dp)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             RowIcon(rowIcon)
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                Text(title, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(title, fontSize = 15.sp, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 Text(
                     hint?.let { "${label(selected)} · $it" } ?: label(selected),
                     fontSize = 11.sp,
@@ -271,21 +276,25 @@ fun <T> CompactChoice(
                 )
             }
         }
+        // Segmenty dzielą szerokość po równo – przy długich nazwach i wąskim ekranie nic nie wychodzi poza kartę.
         Row(
             Modifier
-                .padding(start = 44.dp, top = 6.dp)
+                .fillMaxWidth()
+                .padding(start = 44.dp, top = 10.dp)
                 .clip(RoundedCornerShape(50))
                 .background(Color.White.copy(alpha = 0.06f))
                 .padding(2.dp),
         ) {
             options.forEach { o ->
                 val sel = o == selected
+                val bg by animateColorAsState(if (sel) Color.White else Color.Transparent, label = "segment")
                 Box(
                     Modifier
+                        .weight(1f)
                         .clip(RoundedCornerShape(50))
-                        .background(if (sel) Color.White else Color.Transparent)
+                        .background(bg)
                         .clickable { onSelect(o) }
-                        .padding(horizontal = 11.dp, vertical = 6.dp),
+                        .padding(horizontal = 4.dp, vertical = 8.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -293,6 +302,8 @@ fun <T> CompactChoice(
                         fontSize = 12.sp,
                         fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium,
                         color = if (sel) Palette.Ink else Palette.TextDim,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
             }
@@ -314,15 +325,16 @@ fun ActionRow(
     Row(
         Modifier
             .fillMaxWidth()
+            .heightIn(min = 56.dp)
             .clickable(enabled = enabled, onClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 9.dp),
+            .padding(horizontal = 14.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         RowIcon(icon, if (danger) Palette.Record else Palette.Accent)
         Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
             Text(
                 title,
-                fontSize = 14.sp,
+                fontSize = 15.sp,
                 color = when {
                     !enabled -> Palette.TextFaint
                     danger -> Palette.Record
@@ -331,7 +343,7 @@ fun ActionRow(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            if (subtitle != null) Text(subtitle, fontSize = 11.sp, color = Palette.TextDim, lineHeight = 14.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
+            if (subtitle != null) Text(subtitle, fontSize = 12.sp, color = Palette.TextDim, lineHeight = 16.sp, maxLines = 3, overflow = TextOverflow.Ellipsis)
         }
         trailing?.invoke()
     }
@@ -339,7 +351,7 @@ fun ActionRow(
 
 @Composable
 fun InfoRow(icon: ImageVector, title: String, value: String) {
-    Row(Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 7.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(horizontal = 14.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         RowIcon(icon)
         Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
             Text(title, fontSize = 11.sp, color = Palette.TextDim)
@@ -434,7 +446,7 @@ fun ConfirmDialog(
         title = title,
         onDismiss = onDismiss,
         buttons = {
-            PillButton("Anuluj", primary = false, onClick = onDismiss)
+            PillButton(tr(R.string.anuluj), primary = false, onClick = onDismiss)
             PillButton(confirm, danger = danger, onClick = { onDismiss(); onConfirm() })
         },
     ) {
@@ -508,28 +520,31 @@ fun TabChip(icon: ImageVector?, label: String, selected: Boolean, modifier: Modi
     val bg by animateColorAsState(if (selected) Color.White else Palette.PanelHigh, tween(160), label = "tabBg")
     val fg = if (selected) Palette.Ink else Color.White
     val badge = if (count > 0) (if (count > 99) "99+" else count.toString()) else null
-    Row(
-        modifier
-            .height(34.dp)
-            .clip(RoundedCornerShape(50))
-            .background(bg)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (icon != null) {
-            Box(Modifier.size(18.dp)) {
-                Icon(icon, label, tint = fg, modifier = Modifier.fillMaxSize())
-                // Na otwartej (białej) zakładce akcent zlałby się z tłem – plakietka jest wtedy odwrócona.
-                if (badge != null) {
-                    if (selected) CountBadge(badge, ring = bg, modifier = Modifier.align(Alignment.TopEnd), fill = Palette.Ink, ink = Palette.Accent)
-                    else CountBadge(badge, ring = bg, modifier = Modifier.align(Alignment.TopEnd))
-                }
+    // Plakietka leży nad pigułką, poza jej przycięciem – inaczej obwódka cyferek była ucinana na krawędzi.
+    Box(modifier) {
+        Row(
+            Modifier
+                .height(34.dp)
+                .clip(RoundedCornerShape(50))
+                .background(bg)
+                .clickable(onClick = onClick)
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (icon != null) {
+                Icon(icon, label, tint = fg, modifier = Modifier.size(18.dp))
+                if (selected) Spacer(Modifier.width(6.dp))
             }
-            if (selected) Spacer(Modifier.width(6.dp))
+            // Nieaktywne zakładki z ikoną pokazują tylko ikonę; nazwa tylko przy otwartej.
+            if (icon == null || selected) Text(label, color = fg, fontSize = 13.sp, fontWeight = FontWeight.Bold)
         }
-        // Nieaktywne zakładki z ikoną pokazują tylko ikonę; nazwa tylko przy otwartej.
-        if (icon == null || selected) Text(label, color = fg, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        if (icon != null && badge != null) {
+            Box(Modifier.padding(start = 12.dp, top = 8.dp).size(18.dp)) {
+                // Na otwartej (białej) zakładce akcent zlałby się z tłem – plakietka jest wtedy odwrócona.
+                if (selected) CountBadge(badge, ring = bg, modifier = Modifier.align(Alignment.TopEnd), fill = Palette.Ink, ink = Palette.Accent)
+                else CountBadge(badge, ring = bg, modifier = Modifier.align(Alignment.TopEnd))
+            }
+        }
     }
 }
 

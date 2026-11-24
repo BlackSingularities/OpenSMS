@@ -1,5 +1,7 @@
 package com.blacksingularities.opensms.update
 
+import com.blacksingularities.opensms.tr
+
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -30,7 +32,7 @@ object UpdateManager {
     const val ACTION_STATUS = "com.blacksingularities.opensms.UPDATE_STATUS"
     private const val RESTART_KEY = "update.restart"
     private const val NOTIFICATION_ID = 4711
-    private val API = "https://redzikowski.com/api/github/repos/${BuildConfig.UPDATE_REPO}/releases/latest"
+    private val API = "https://redzikowski.com/api/releases/repos/${BuildConfig.UPDATE_REPO}/releases/latest"
 
     val currentVersion: String get() = BuildConfig.VERSION_NAME
 
@@ -51,8 +53,8 @@ object UpdateManager {
         val pending = PendingIntent.getActivity(context, 0, launch, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         val n = NotificationCompat.Builder(context, Notifier.CHANNEL_UPDATES)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("OpenSMS zaktualizowany do ${BuildConfig.VERSION_NAME}")
-            .setContentText("Dotknij, aby otworzyć aplikację")
+            .setContentTitle(tr(R.string.opensms_zaktualizowany_do_1, BuildConfig.VERSION_NAME))
+            .setContentText(tr(R.string.dotknij_aby_otworzyc_aplikacje))
             .setContentIntent(pending)
             .setAutoCancel(true)
             .build()
@@ -70,15 +72,15 @@ object UpdateManager {
         val conn = (URL(url).openConnection() as HttpURLConnection).apply {
             connectTimeout = 10_000
             readTimeout = 15_000
-            setRequestProperty("Accept", "application/vnd.github+json")
+            setRequestProperty("Accept", "application/json")
             setRequestProperty("User-Agent", "OpenSMS/" + BuildConfig.VERSION_NAME)
         }
         try {
             when (conn.responseCode) {
                 200 -> return conn.inputStream.bufferedReader().use { it.readText() }
-                404 -> error("Brak opublikowanych wydań")
-                403 -> error("Limit zapytań GitHub – spróbuj później")
-                else -> error("Serwer odpowiedział kodem ${conn.responseCode}")
+                404 -> error(tr(R.string.brak_opublikowanych_wydan))
+                403 -> error(tr(R.string.limit_zapytan_serwera_aktualizacji_sprobuj))
+                else -> error(tr(R.string.serwer_odpowiedzial_kodem_1, conn.responseCode))
             }
         } finally {
             conn.disconnect()
@@ -97,7 +99,7 @@ object UpdateManager {
             setRequestProperty("User-Agent", "OpenSMS/" + BuildConfig.VERSION_NAME)
         }
         try {
-            if (conn.responseCode !in 200..299) error("Pobieranie nie powiodło się (${conn.responseCode})")
+            if (conn.responseCode !in 200..299) error(tr(R.string.pobieranie_nie_powiodlo_sie_1, conn.responseCode))
             val total = conn.contentLengthLong.takeIf { it > 0 } ?: info.sizeBytes
             conn.inputStream.use { input ->
                 part.outputStream().use { out ->
@@ -117,7 +119,7 @@ object UpdateManager {
                     }
                 }
             }
-            if (!part.renameTo(target)) error("Nie można zapisać pliku aktualizacji")
+            if (!part.renameTo(target)) error(tr(R.string.nie_mozna_zapisac_pliku_aktualizacji))
             onProgress(1f)
             target
         } finally {
@@ -176,7 +178,7 @@ class UpdateReceiver : BroadcastReceiver() {
             else -> {
                 val msg = intent.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE) ?: "kod $status"
                 if (status != PackageInstaller.STATUS_FAILURE_ABORTED) {
-                    Toast.makeText(context, "Aktualizacja nieudana: $msg", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, tr(R.string.aktualizacja_nieudana_1, msg), Toast.LENGTH_LONG).show()
                 }
             }
         }

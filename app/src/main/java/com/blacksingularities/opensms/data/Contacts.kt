@@ -1,5 +1,8 @@
 package com.blacksingularities.opensms.data
 
+import com.blacksingularities.opensms.R
+import com.blacksingularities.opensms.tr
+
 import android.Manifest
 import android.content.ContentUris
 import android.content.Context
@@ -59,7 +62,7 @@ object Contacts {
         lookup(context, address)?.name ?: formatNumber(address)
 
     fun title(context: Context, addresses: List<String>): String = when {
-        addresses.isEmpty() -> "Brak odbiorcy"
+        addresses.isEmpty() -> tr(R.string.brak_odbiorcy)
         addresses.size == 1 -> displayName(context, addresses[0])
         else -> addresses.joinToString(", ") { displayName(context, it).substringBefore(' ') }
     }
@@ -107,13 +110,13 @@ object Contacts {
         }
 
     private fun phoneLabel(type: Int, custom: String?): String = when (type) {
-        ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE -> "Komórka"
-        ContactsContract.CommonDataKinds.Phone.TYPE_HOME -> "Dom"
-        ContactsContract.CommonDataKinds.Phone.TYPE_WORK, ContactsContract.CommonDataKinds.Phone.TYPE_WORK_MOBILE -> "Praca"
-        ContactsContract.CommonDataKinds.Phone.TYPE_MAIN -> "Główny"
-        ContactsContract.CommonDataKinds.Phone.TYPE_OTHER -> "Inny"
-        ContactsContract.CommonDataKinds.Phone.TYPE_CUSTOM -> custom ?: "Inny"
-        else -> "Telefon"
+        ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE -> tr(R.string.komorka)
+        ContactsContract.CommonDataKinds.Phone.TYPE_HOME -> tr(R.string.dom)
+        ContactsContract.CommonDataKinds.Phone.TYPE_WORK, ContactsContract.CommonDataKinds.Phone.TYPE_WORK_MOBILE -> tr(R.string.praca)
+        ContactsContract.CommonDataKinds.Phone.TYPE_MAIN -> tr(R.string.glowny)
+        ContactsContract.CommonDataKinds.Phone.TYPE_OTHER -> tr(R.string.inny)
+        ContactsContract.CommonDataKinds.Phone.TYPE_CUSTOM -> custom ?: tr(R.string.inny)
+        else -> tr(R.string.telefon)
     }
 }
 

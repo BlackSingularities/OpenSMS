@@ -10,6 +10,22 @@ val appVersionCode = (project.findProperty("versionCode") as String?)?.toIntOrNu
 val appVersionName = (project.findProperty("versionName") as String?) ?: "0.1.0-dev"
 val keystorePath: String? = System.getenv("SIGNING_KEYSTORE_PATH")
 
+/**
+ * Języki interfejsu wykrywane z katalogów zasobów: każdy `res/values-xx/strings.xml`
+ * to jeden język (angielski w `values/` jest domyślny). Nowy język = nowy plik, nic więcej.
+ */
+val appLocales: List<String> = listOf("en") + (file("src/main/res").listFiles().orEmpty()
+    .filter { it.isDirectory && it.name.startsWith("values-") && File(it, "strings.xml").exists() }
+    .mapNotNull { dir ->
+        val q = dir.name.removePrefix("values-")
+        when {
+            q.startsWith("b+") -> q.removePrefix("b+").replace('+', '-')
+            Regex("[a-z]{2,3}(-r[A-Z]{2})?").matches(q) -> q.replace("-r", "-")
+            else -> null
+        }
+    }
+    .sorted())
+
 android {
     namespace = "com.blacksingularities.opensms"
     compileSdk = 36
@@ -22,6 +38,7 @@ android {
         versionName = appVersionName
         vectorDrawables.useSupportLibrary = true
         buildConfigField("String", "UPDATE_REPO", "\"BlackSingularities/OpenSMS\"")
+        buildConfigField("String[]", "LOCALES", appLocales.joinToString(", ", "{", "}") { "\"$it\"" })
     }
 
     signingConfigs {
@@ -55,6 +72,10 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
+    }
+    androidResources {
+        // Lista języków dla systemu (wybór języka aplikacji w Androidzie 13+) generowana z katalogów values-xx.
+        generateLocaleConfig = true
     }
     buildFeatures {
         compose = true
