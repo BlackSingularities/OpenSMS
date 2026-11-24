@@ -345,11 +345,11 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** Lista po filtrze: przypięte na górze, archiwalne tylko w „Archiwum”. */
+    /** Lista po filtrze: przypięte na górze, archiwalne w „Archiwum” (i we „Wszystkich”, dopóki mają nieprzeczytane). */
     fun visibleConversations(): List<ConversationItem> {
         val live = conversations.filter { !it.trashed }
         val list = when (filter) {
-            Filter.ALL -> live.filter { !it.archived }
+            Filter.ALL -> live.filter { !it.archived || it.conv.unread > 0 }
             Filter.UNREAD -> live.filter { it.conv.unread > 0 }
             Filter.PINNED -> live.filter { it.pinned }
             Filter.ARCHIVED -> live.filter { it.archived }
@@ -358,7 +358,7 @@ class AppViewModel(app: Application) : AndroidViewModel(app) {
         return list.sortedWith(compareByDescending<ConversationItem> { it.pinned && filter != Filter.ARCHIVED && filter != Filter.TRASH }.thenByDescending { it.conv.date })
     }
 
-    val unreadCount: Int get() = conversations.filter { !it.archived && !it.trashed }.sumOf { it.conv.unread }
+    val unreadCount: Int get() = conversations.filter { !it.trashed }.sumOf { it.conv.unread }
 
     private fun loadMessages(markRead: Boolean) {
         val id = openThreadId ?: return
