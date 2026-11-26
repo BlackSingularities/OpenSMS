@@ -82,6 +82,8 @@ import androidx.compose.material.icons.rounded.ZoomIn
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -655,9 +657,7 @@ private fun MessageBubble(
             Column(
                 Modifier
                     .widthIn(max = maxWidth)
-                    .clip(shape)
-                    .background(if (onlyEmoji) Color.Transparent else colors.background)
-                    .then(if (colors.outline != null && !onlyEmoji) Modifier.border(1.dp, colors.outline, shape) else Modifier)
+                    .bubbleSurface(style, colors, shape, out, bare = onlyEmoji)
                     .combinedClickable(
                         onClickLabel = if (failed) tr(R.string.wyslij_ponownie) else tr(R.string.pokaz_szczegoly),
                         onLongClickLabel = tr(R.string.opcje_wiadomosci),
@@ -678,6 +678,7 @@ private fun MessageBubble(
                         contentDescription = (if (out) tr(R.string.ty) else Contacts.displayName(context, m.address)) + ", " + formatTime(m.date)
                     },
             ) {
+                ProvideTextStyle(if (colors.mono) LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace) else LocalTextStyle.current) {
                 if (m.pendingUrl != null) {
                     PendingMms(vm, m)
                 }
@@ -701,6 +702,7 @@ private fun MessageBubble(
                         lineHeight = if (onlyEmoji) style.sp(46f) else style.sp(21f),
                         onAnchor = { codeAnchor = it },
                     )
+                }
                 }
             }
             val anchor = codeAnchor
@@ -885,10 +887,9 @@ private fun PreviewCodeBubble(style: MessageStyle, max: Dp) {
             Box(
                 Modifier
                     .widthIn(max = max)
-                    .clip(sh)
-                    .background(c.background)
-                    .then(if (c.outline != null) Modifier.border(1.dp, c.outline, sh) else Modifier),
+                    .bubbleSurface(style, c, sh, out = false),
             ) {
+                ProvideTextStyle(if (c.mono) LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace) else LocalTextStyle.current) {
                 val previewRange = remember(text) { OneTimeCode.findIn(text)?.range }
                 CodeAwareText(
                     annotated = linkify(text, null, c.lightBackground, previewRange, copied) { copied = true },
@@ -899,6 +900,7 @@ private fun PreviewCodeBubble(style: MessageStyle, max: Dp) {
                     lineHeight = style.sp(21f),
                     onAnchor = { anchor = it },
                 )
+                }
             }
             if (anchor != null) CopyCodeBadge(Modifier.align(Alignment.TopEnd), copied, style, c.lightBackground, c.background) { copied = true }
         }
@@ -938,11 +940,10 @@ private fun PreviewBubble(style: MessageStyle, max: Dp, sender: String?, raw: St
                 color = c.content,
                 fontSize = if (onlyEmoji) style.sp(40f) else style.sp(16f),
                 lineHeight = if (onlyEmoji) style.sp(46f) else style.sp(21f),
+                fontFamily = if (c.mono) FontFamily.Monospace else null,
                 modifier = Modifier
                     .widthIn(max = max)
-                    .clip(sh)
-                    .background(if (onlyEmoji) Color.Transparent else c.background)
-                    .then(if (c.outline != null && !onlyEmoji) Modifier.border(1.dp, c.outline, sh) else Modifier)
+                    .bubbleSurface(style, c, sh, out, bare = onlyEmoji)
                     .padding(horizontal = style.dp(14f), vertical = style.dp(9f)),
             )
             if (showTime) PreviewTime(style, time, out)
