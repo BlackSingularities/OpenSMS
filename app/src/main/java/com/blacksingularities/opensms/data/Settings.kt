@@ -41,11 +41,35 @@ enum class BubbleTint(private val labelRes: Int) {
     val label: String get() = tr(labelRes)
 }
 
+/**
+ * Gotowy wygląd dymków. [tail] – ogonek przy ostatnim dymku serii, [radius] – zaokrąglenie
+ * ustawiane przy wyborze skina (potem można je zmienić suwakiem). Kolory są w MessageStyle.
+ */
+enum class BubbleSkin(private val labelRes: Int, val tail: Boolean, val radius: Float) {
+    CLASSIC(R.string.skin_klasyczny, false, 22f),
+    IOS(R.string.skin_ios, true, 18f),
+    IOS_SMS(R.string.skin_ios_sms, true, 18f),
+    MATERIAL(R.string.skin_material, false, 20f),
+    OCEAN(R.string.skin_ocean, true, 20f),
+    SUNSET(R.string.skin_zachod, false, 22f),
+    AURORA(R.string.skin_zorza, true, 20f),
+    NEON(R.string.skin_neon, false, 14f),
+    GLASS(R.string.skin_szklo, false, 24f),
+    PAPER(R.string.skin_papier, true, 14f),
+    TERMINAL(R.string.skin_terminal, false, 3f),
+    COMIC(R.string.skin_komiks, true, 10f),
+    MINIMAL(R.string.skin_bez_tla, false, 0f),
+    CUSTOM(R.string.skin_wlasny, true, 18f);
+
+    val label: String get() = tr(labelRes)
+}
+
 /** Odstępy między wiadomościami (dp): między seriami i wewnątrz serii. */
 enum class BubbleSpacing(private val labelRes: Int, val gap: Float, val joined: Float) {
-    COMPACT(R.string.ciasno, 4f, 1f),
+    COMPACT(R.string.ciasno, 1f, 0f),
     NORMAL(R.string.zwykle_2, 7f, 2f),
-    AIRY(R.string.luzno, 12f, 3f);
+    AIRY(R.string.luzno, 16f, 5f),
+    HUGE(R.string.bardzo_luzno, 28f, 9f);
 
     val label: String get() = tr(labelRes)
 }
@@ -120,6 +144,13 @@ class Settings private constructor(context: Context) {
     var bubbleWidth by enumPref("bubbleWidth", BubbleWidth.NORMAL)
     var bubbleTint by enumPref("bubbleTint", BubbleTint.WHITE)
     var bubbleSpacing by enumPref("bubbleSpacing", BubbleSpacing.NORMAL)
+    var bubbleSkin by enumPref("bubbleSkin", BubbleSkin.CLASSIC)
+    /** Własny skin: kolory ARGB; [customOut2] = 0 oznacza brak gradientu. */
+    var customOut by intPref("customOut", 0xFF0A84FF.toInt())
+    var customOut2 by intPref("customOut2", 0)
+    var customIn by intPref("customIn", 0xFF26252A.toInt())
+    var customOutline by boolPref("customOutline", false)
+    var customTail by boolPref("customTail", true)
     var timeMode by enumPref("timeMode", TimeMode.GROUP)
     var bigEmoji by boolPref("bigEmoji", true)
     /** Emotikony tekstowe (`:)`, `<3`) pokazywane jako emoji. */

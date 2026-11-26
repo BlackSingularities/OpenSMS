@@ -109,6 +109,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.blacksingularities.opensms.data.Backup
+import com.blacksingularities.opensms.data.BubbleSkin
 import com.blacksingularities.opensms.data.BubbleSpacing
 import com.blacksingularities.opensms.data.BubbleTint
 import com.blacksingularities.opensms.data.BubbleWidth
@@ -203,6 +204,8 @@ private fun ConversationLookGroup(vm: AppViewModel) {
     val s = vm.settings
     Group(tr(R.string.wyglad_rozmowy)) {
         MessageStylePreview(MessageStyle.from(s), Modifier.padding(start = 10.dp, end = 10.dp, top = 4.dp, bottom = 6.dp))
+        BubbleSkinPicker(s)
+        CustomBubbleEditor(s)
         Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RowIcon(Icons.Rounded.ZoomIn)
@@ -226,7 +229,9 @@ private fun ConversationLookGroup(vm: AppViewModel) {
             )
         }
         SwitchRow(Icons.Rounded.TouchApp, tr(R.string.powiekszanie_dwoma_palcami), tr(R.string.w_rozmowie_i_na_liscie), s.pinchZoom) { s.pinchZoom = it }
-        CompactChoice(Icons.Rounded.ColorLens, tr(R.string.kolor_moich_wiadomosci), BubbleTint.entries, s.bubbleTint, { it.label }) { s.bubbleTint = it }
+        if (s.bubbleSkin == BubbleSkin.CLASSIC) {
+            CompactChoice(Icons.Rounded.ColorLens, tr(R.string.kolor_moich_wiadomosci), BubbleTint.entries, s.bubbleTint, { it.label }) { s.bubbleTint = it }
+        }
         Column(Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 RowIcon(Icons.Rounded.RoundedCorner)
@@ -243,7 +248,7 @@ private fun ConversationLookGroup(vm: AppViewModel) {
                         color = Palette.TextDim,
                     )
                 }
-                if (s.bubbleRadius != 22f) PillButton(tr(R.string.domyslne), primary = false, onClick = { s.bubbleRadius = 22f })
+                if (s.bubbleRadius != s.bubbleSkin.radius) PillButton(tr(R.string.domyslne), primary = false, onClick = { s.bubbleRadius = s.bubbleSkin.radius })
             }
             Slider(
                 value = s.bubbleRadius,

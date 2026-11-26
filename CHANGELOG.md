@@ -1,5 +1,14 @@
 # Zmiany
 
+## 1.5.0
+
+- **Style dymków**: 14 gotowych skinów do wyboru z miniaturą – Klasyczny, iOS, iOS SMS, Material, Ocean, Zachód, Zorza (gradienty), Neon, Szkło, Papier, Terminal (krój o stałej szerokości), Komiks i Bez dymków.
+- **Ogonek jak w iOS**: część skinów ma ogonek przy ostatnim dymku serii; krawędzie dymków w serii zostają w jednej linii.
+- **Własny skin**: kolor moich i odebranych wiadomości z palety albo dokładnie (odcień, nasycenie, jasność), drugi kolor dla gradientu, ogonek i obwódka. „Edytuj ręcznie” zaczyna od kolorów obecnego skina; kolor tekstu dobiera się sam, żeby był czytelny.
+- Wybór skina ustawia pasujące zaokrąglenie, które dalej można zmienić suwakiem.
+- **Odstępy działają mocniej**: „Ciasno” skleja dymki niemal na styk, „Luźno” jest wyraźnie luźniej, doszła opcja „Bardzo luźno”.
+- W ustawieniach pod opcjami z przełącznikiem nie powtarza się już wybrana wartość – widać ją w przełączniku obok.
+
 ## 1.4.9
 
 - **Odpowiedź wyciąga rozmowę z archiwum**: wysłanie wiadomości w zarchiwizowanej rozmowie (z aplikacji, z powiadomienia lub szybką odpowiedzią) przywraca ją do listy głównej.

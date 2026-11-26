@@ -266,8 +266,9 @@ fun <T> CompactChoice(
             RowIcon(rowIcon)
             Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                 Text(title, fontSize = 15.sp, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(
-                    hint?.let { "${label(selected)} · $it" } ?: label(selected),
+                // Wybrana wartość jest widoczna w przełączniku obok – pod tytułem tylko ewentualna podpowiedź.
+                if (hint != null) Text(
+                    hint,
                     fontSize = 11.sp,
                     lineHeight = 14.sp,
                     color = Palette.TextDim,
