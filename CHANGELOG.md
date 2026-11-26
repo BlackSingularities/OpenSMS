@@ -1,5 +1,9 @@
 # Zmiany
 
+## 1.4.9
+
+- **Odpowiedź wyciąga rozmowę z archiwum**: wysłanie wiadomości w zarchiwizowanej rozmowie (z aplikacji, z powiadomienia lub szybką odpowiedzią) przywraca ją do listy głównej.
+
 ## 1.4.7
 
 - **Kod, znaczek i podświetlenie zawsze w zgodzie**: detektor zwraca teraz miejsce kodu w treści, więc wyróżnienie w dymku nie rozjeżdża się z tym, co kopiuje znaczek. Działa też dla kodów pisanych ze spacją lub myślnikiem w dowolnym układzie, nie tylko „123 456”.

@@ -51,12 +51,19 @@ object MessageSender {
 
         if (mms) {
             val threadId = MmsSender.send(context, recipients, body, attachments, sub, subject)
+            unarchive(settings, threadId)
             return SendResult(threadId, true)
         }
         var threadId = -1L
         for (r in recipients) threadId = sendSms(context, r, body, sub)
         if (recipients.size > 1) threadId = MessageStore(context).threadIdFor(recipients)
+        unarchive(settings, threadId)
         return SendResult(threadId, false)
+    }
+
+    /** Odpowiedź w zarchiwizowanej rozmowie wyciąga ją z archiwum. */
+    private fun unarchive(settings: Settings, threadId: Long) {
+        if (threadId > 0 && settings.isArchived(threadId)) settings.toggleArchived(listOf(threadId), false)
     }
 
     /** Wysyła jeden SMS (dzielony na części) i zapisuje go w skrzynce nadawczej. */
