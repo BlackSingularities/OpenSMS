@@ -26,7 +26,9 @@ class BubbleContrastTest {
 
     private fun check(name: String, c: BubbleColors) {
         val bg = c.background.compositeOver(Color.Black)
-        assertTrue("$name: za słaby kontrast tekstu", contrast(c.content, bg) >= 3f)
+        // Próg łapie tekst niewidoczny (czerń na czerni ≈ 1:1); zielony „iOS SMS” z bielą ma celowo ok. 2:1.
+        val ratio = contrast(c.content, bg)
+        assertTrue("$name: tekst prawie niewidoczny (kontrast $ratio)", ratio >= 1.8f)
         assertEquals("$name: lightBackground nie pasuje do tła", c.content.luminance() < bg.luminance(), c.lightBackground)
     }
 
