@@ -1,5 +1,10 @@
 # Zmiany
 
+## 1.5.1
+
+- **Jedna godzina pod serią SMS-ów**: kilka wiadomości od tej samej osoby w ciągu 10 minut ma godzinę tylko pod ostatnią (wcześniej seria kończyła się po 2 minutach przerwy). Godzinę dowolnego dymka pokazuje jego dotknięcie.
+- Awatar w rozmowie grupowej nie wisi już nad dymkiem, gdy pod nim nie ma godziny.
+
 ## 1.5.0
 
 - **Style dymków**: 14 gotowych skinów do wyboru z miniaturą – Klasyczny, iOS, iOS SMS, Material, Ocean, Zachód, Zorza (gradienty), Neon, Szkło, Papier, Terminal (krój o stałej szerokości), Komiks i Bez dymków.

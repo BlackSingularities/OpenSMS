@@ -332,6 +332,7 @@ fun ThreadScreen(vm: AppViewModel, s: Screen.Thread) {
                             showSender = showSender,
                             groupedWithOlder = groupedWith(m, older),
                             groupedWithNewer = groupedWith(m, newer),
+                            timeGroupedWithNewer = timeGroupedWith(m, newer),
                             showStatus = m.key == lastOutgoing || m.box == MsgBox.FAILED,
                             reactions = reactions.byTarget[m.key].orEmpty(),
                             selecting = selecting,
@@ -556,6 +557,18 @@ private fun groupedWith(m: Message, other: Message?): Boolean =
         kotlin.math.abs(other.date - m.date) < 120_000 &&
         isSameDay(other.date, m.date)
 
+/**
+ * Seria dla godziny jest dłuższa niż seria dymków: kilka SMS-ów od tej samej osoby w ciągu
+ * paru minut dostaje jedną godzinę pod ostatnim (jak w innych komunikatorach). Godzinę
+ * pojedynczego dymka i tak widać po jego dotknięciu.
+ */
+private fun timeGroupedWith(m: Message, other: Message?): Boolean =
+    other != null &&
+        other.incoming == m.incoming &&
+        other.address == m.address &&
+        kotlin.math.abs(other.date - m.date) < 10 * 60_000 &&
+        isSameDay(other.date, m.date)
+
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun MessageBubble(
@@ -568,6 +581,7 @@ private fun MessageBubble(
     showSender: Boolean,
     groupedWithOlder: Boolean,
     groupedWithNewer: Boolean,
+    timeGroupedWithNewer: Boolean,
     showStatus: Boolean,
     reactions: List<Reactions.Pick> = emptyList(),
     selecting: Boolean = false,
@@ -582,6 +596,12 @@ private fun MessageBubble(
     val failed = m.box == MsgBox.FAILED
     val colors = style.colors(out, failed)
     val shape = style.shape(out, groupedWithOlder, groupedWithNewer)
+    val showTime = when (style.timeMode) {
+        TimeMode.EVERY -> true
+        TimeMode.GROUP -> !timeGroupedWithNewer
+        TimeMode.TAP -> false
+    }
+    val statusVisible = expanded || showStatus || showTime || m.box == MsgBox.OUTBOX
     // Emotikony tekstowe pokazujemy jako emoji; w bazie zostaje oryginalna treść wiadomości.
     val body = remember(m.body, style.emoticons) { if (style.emoticons) Emoticons.apply(m.body) else m.body }
     val onlyEmoji = style.bigEmoji && body.isNotBlank() && m.media.isEmpty() && body.length <= 12 && body.none { it.isLetterOrDigit() }
@@ -633,7 +653,7 @@ private fun MessageBubble(
         // Awatar nadawcy w rozmowach grupowych: przy ostatnim dymku serii, wcześniej puste miejsce.
         if (showAvatar && m.incoming) {
             val avatarSize = style.dp(28f).coerceIn(20.dp, 44.dp)
-            Box(Modifier.padding(end = 6.dp, bottom = style.dp(20f).coerceAtMost(28.dp)).size(avatarSize)) {
+            Box(Modifier.padding(end = 6.dp, bottom = if (statusVisible) style.dp(20f).coerceAtMost(28.dp) else 0.dp).size(avatarSize)) {
                 if (!groupedWithNewer) {
                     val c = remember(m.address) { Contacts.lookup(context, m.address) }
                     Avatar(c?.name ?: m.address, c?.photo, size = avatarSize, colored = vm.settings.colorAvatars)
@@ -718,12 +738,7 @@ private fun MessageBubble(
             }
             }
             if (reactions.isNotEmpty()) ReactionChips(reactions, style)
-            val showTime = when (style.timeMode) {
-                TimeMode.EVERY -> true
-                TimeMode.GROUP -> !groupedWithNewer
-                TimeMode.TAP -> false
-            }
-            if (expanded || showStatus || showTime || m.box == MsgBox.OUTBOX) {
+            if (statusVisible) {
                 StatusLine(vm, m, expanded || showStatus, style)
             }
         }
