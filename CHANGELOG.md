@@ -1,5 +1,12 @@
 # Zmiany
 
+## 1.5.2
+
+- **Numery i linki znowu widoczne**: w skinie „Bez dymków” numer telefonu, link czy e-mail w odebranej wiadomości był malowany czernią na czarnym tle i znikał z treści. Linki mają teraz zawsze kolor tekstu dymka (z podkreśleniem), więc są czytelne w każdym skinie.
+- „Jasne tło” dymka (od którego zależą wyróżnienia i znaczek kodu) liczy się z faktycznego koloru tła, a nie z koloru tekstu.
+- Załączniki (plik, nagranie, wizytówka) i MMS czekający na pobranie biorą kolory ze skina – nie znikają już np. w „Bez dymków” ani na białym dymku „Komiksu”.
+- Nowy test sprawdza kontrast tekstu we wszystkich skinach.
+
 ## 1.5.1
 
 - **Jedna godzina pod serią SMS-ów**: kilka wiadomości od tej samej osoby w ciągu 10 minut ma godzinę tylko pod ostatnią (wcześniej seria kończyła się po 2 minutach przerwy). Godzinę dowolnego dymka pokazuje jego dotknięcie.

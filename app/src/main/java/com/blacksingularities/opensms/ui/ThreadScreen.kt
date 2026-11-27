@@ -700,9 +700,9 @@ private fun MessageBubble(
             ) {
                 ProvideTextStyle(if (colors.mono) LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace) else LocalTextStyle.current) {
                 if (m.pendingUrl != null) {
-                    PendingMms(vm, m)
+                    PendingMms(vm, m, colors)
                 }
-                m.media.forEach { part -> MediaPart(vm, m, part, style, maxWidth) }
+                m.media.forEach { part -> MediaPart(vm, m, part, style, maxWidth, colors) }
                 if (m.subject != null) {
                     Text(
                         m.subject,
@@ -714,7 +714,7 @@ private fun MessageBubble(
                 }
                 if (body.isNotEmpty()) {
                     CodeAwareText(
-                        annotated = linkify(body, highlight, colors.lightBackground, found?.range, copied, copyCode),
+                        annotated = linkify(body, highlight, colors, found?.range, copied, copyCode),
                         codeRange = found?.range,
                         style = style,
                         color = colors.content,
@@ -907,7 +907,7 @@ private fun PreviewCodeBubble(style: MessageStyle, max: Dp) {
                 ProvideTextStyle(if (c.mono) LocalTextStyle.current.copy(fontFamily = FontFamily.Monospace) else LocalTextStyle.current) {
                 val previewRange = remember(text) { OneTimeCode.findIn(text)?.range }
                 CodeAwareText(
-                    annotated = linkify(text, null, c.lightBackground, previewRange, copied) { copied = true },
+                    annotated = linkify(text, null, c, previewRange, copied) { copied = true },
                     codeRange = previewRange,
                     style = style,
                     color = c.content,
@@ -997,21 +997,22 @@ private fun StatusLine(vm: AppViewModel, m: Message, full: Boolean, style: Messa
 }
 
 @Composable
-private fun PendingMms(vm: AppViewModel, m: Message) {
+private fun PendingMms(vm: AppViewModel, m: Message, colors: BubbleColors) {
+    val ink = colors.content
     val downloading = m.id in MmsDownloader.downloading.value
     Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Box(Modifier.size(40.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.1f)), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(40.dp).clip(CircleShape).background(ink.copy(alpha = 0.1f)), contentAlignment = Alignment.Center) {
             if (downloading) {
-                CircularProgressIndicator(color = Color.White, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
+                CircularProgressIndicator(color = ink, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
             } else {
-                Icon(Icons.Rounded.Download, null, tint = Color.White)
+                Icon(Icons.Rounded.Download, null, tint = ink)
             }
         }
         Column(Modifier.padding(horizontal = 12.dp)) {
-            Text(tr(R.string.wiadomosc_mms), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text(tr(R.string.wiadomosc_mms), color = ink, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             Text(
                 if (downloading) tr(R.string.pobieranie) else listOfNotNull(m.sizeBytes.takeIf { it > 0 }?.let(::formatSize), tr(R.string.dotknij_aby_pobrac)).joinToString(" · "),
-                color = Palette.TextDim,
+                color = ink.copy(alpha = 0.7f),
                 fontSize = 12.sp,
             )
         }
@@ -1020,7 +1021,7 @@ private fun PendingMms(vm: AppViewModel, m: Message) {
 }
 
 @Composable
-private fun MediaPart(vm: AppViewModel, m: Message, part: MmsPart, style: MessageStyle, maxWidth: Dp) {
+private fun MediaPart(vm: AppViewModel, m: Message, part: MmsPart, style: MessageStyle, maxWidth: Dp, colors: BubbleColors) {
     val context = LocalContext.current
     when {
         part.isImage || part.isVideo -> {
@@ -1048,12 +1049,13 @@ private fun MediaPart(vm: AppViewModel, m: Message, part: MmsPart, style: Messag
             }
         }
         else -> {
-            val out = !m.incoming
+            // Kolory ze skina dymka, nie z kierunku wiadomości – inaczej np. „Bez dymków” daje czerń na czerni.
+            val ink = colors.content
             Row(
                 Modifier
                     .padding(6.dp)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(if (out) Color.Black.copy(alpha = 0.07f) else Color.White.copy(alpha = 0.07f))
+                    .background(ink.copy(alpha = 0.08f))
                     .clickable {
                         runCatching { MediaActions.open(context, part.uri, part.contentType, part.name) }
                             .onFailure { vm.toast = it.message }
@@ -1068,7 +1070,7 @@ private fun MediaPart(vm: AppViewModel, m: Message, part: MmsPart, style: Messag
                         else -> Icons.AutoMirrored.Rounded.InsertDriveFile
                     },
                     null,
-                    tint = if (out) Palette.Ink else Color.White,
+                    tint = ink,
                     modifier = Modifier.size(28.dp),
                 )
                 Column(Modifier.padding(start = 10.dp).widthIn(max = (maxWidth - 70.dp).coerceAtLeast(100.dp))) {
@@ -1078,11 +1080,11 @@ private fun MediaPart(vm: AppViewModel, m: Message, part: MmsPart, style: Messag
                             part.isVcard -> tr(R.string.wizytowka)
                             else -> tr(R.string.plik)
                         },
-                        color = if (out) Palette.Ink else Color.White,
+                        color = ink,
                         fontWeight = FontWeight.Bold,
                         fontSize = 14.sp,
                     )
-                    Text(part.name ?: part.contentType, color = if (out) Palette.Ink.copy(alpha = 0.6f) else Palette.TextDim, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(part.name ?: part.contentType, color = ink.copy(alpha = 0.65f), fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
@@ -1093,11 +1095,12 @@ private fun MediaPart(vm: AppViewModel, m: Message, part: MmsPart, style: Messag
 private fun linkify(
     text: String,
     highlight: String?,
-    dark: Boolean,
+    colors: BubbleColors,
     codeRange: IntRange? = null,
     copied: Boolean = false,
     onCode: () -> Unit = {},
 ): AnnotatedString {
+    val dark = colors.lightBackground
     data class Span(val start: Int, val end: Int, val url: String)
     val spans = ArrayList<Span>()
     // Kod w treści: monospace na delikatnym tle, dotknięcie kopiuje. Linki nie mogą na niego nachodzić.
@@ -1114,7 +1117,8 @@ private fun linkify(
     spans.removeAll { it.url.startsWith("tel:") && it.url.length < 11 }
     spans.removeAll { it.url.isEmpty() }
     spans.sortBy { it.start }
-    val linkColor = if (dark) Palette.Ink else Color.White
+    // Link w kolorze tekstu dymka (wyróżniony podkreśleniem) – zawsze czytelny, w każdym skinie.
+    val linkColor = colors.content
     val styles = TextLinkStyles(SpanStyle(color = linkColor, textDecoration = TextDecoration.Underline))
     val codeStyle = SpanStyle(
         fontFamily = FontFamily.Monospace,

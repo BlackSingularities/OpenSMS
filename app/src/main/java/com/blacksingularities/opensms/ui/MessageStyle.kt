@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.Density
@@ -53,8 +54,12 @@ data class BubbleColors(
     val outlineWidth: Dp = 1.dp,
     val mono: Boolean = false,
 ) {
-    /** Ciemny tekst na jasnym tle – linki i wyróżnienia muszą być ciemne. */
-    val lightBackground: Boolean get() = content.luminance() < 0.5f
+    /**
+     * Jasne tło dymka (po nałożeniu na czarne tło rozmowy) – wyróżnienia muszą być ciemne.
+     * Liczone z tła, nie z koloru tekstu: szary tekst (np. „Bez dymków”) bywa ciemniejszy
+     * niż połowa skali, a mimo to leży na czerni.
+     */
+    val lightBackground: Boolean get() = background.compositeOver(Palette.Ink).luminance() > 0.5f
 }
 
 /** Tekst czytelny na danym tle: biały na ciemnym, prawie czarny na jasnym. */
